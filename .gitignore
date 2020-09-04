@@ -1,0 +1,28 @@
+# Autoconf files
+config.h
+config.log
+config.status
+autom4te.cache
+**/.cmake.state
+
+# Google APIs
+protos/googleapis
+
+# Protobuf intermediate files
+**/*.pb.*
+
+# Proto files
+**/*.proto
+
+# C++ output files
+**/*.o
+**/*.a
+
+# Build output
+build
+
+# IntelliJ Files
+.idea
+
+# vscode
+.vscode
