@@ -42,6 +42,4 @@ class ProxyClient {
  private:
   std::unique_ptr<openolt::Openolt::Stub> stub_;
   
- public:
- ProxyClient* connectToServer();
 };

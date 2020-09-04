@@ -11,18 +11,6 @@
  * limitations under the License.
  */
 
-#include <iostream>
-#include "logger.h"
-#include "proxy_server.h"
+#include <stdio.h>
 
-using namespace std;
-
-int main(int argc, char** argv) {
-
-    loguru::init(argc, argv);
-
-    RunServer(argc, argv);
-
-    return 0;
-}
-
+void RunServer(int argc, char** argv);

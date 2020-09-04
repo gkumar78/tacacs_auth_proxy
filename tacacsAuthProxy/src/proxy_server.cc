@@ -46,25 +46,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  { // add client
    TaccController *taccController;
    ProxyClient *proxyClient;
 	
-   class accountingWrapper {
-
-        string methodName;
-        Status (*clientFunc)();
-
-        public: 
-	accountingWrapper(string method, Status (*clientFunc)())  	 	
-                : methodName(method),
-                  clientFunc(clientFunc){}
-
-        Status  invoke() {
-//                AccoutingStart(methodName);
-                Status status = this->clientFunc();
-//                AccoutingStop(methodName);
-                return status;
-        }
-
-    };
-
     Status processTacacsAuth(ServerContext* context, string methodName) {
         // Is TACACS enabled, if not proceed to client invocation
         // Extract Auth Credentials
@@ -97,13 +78,8 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  { // add client
                         return authResult;
                 }
 
-		ProxyClient* client = proxyClient;
 		grpc::ClientContext ctx;
-                Status disableOLT = [client, ctx, request, response]() -> Status { 
-	
-		return client->connectToServer()->DisableOlt(&ctx, request, response); };
-                return ProxyServiceImpl::accountingWrapper("DisableOlt", disableOLT).invoke();
-
+		return proxyClient->DisableOlt(&ctx, request, response);
     }
 
     public:
@@ -156,10 +132,30 @@ std::string base64_decode(std::string const& encoded_string) {
 }
 
 void RunServer(int argc, char** argv) {
+  const char* tacacs_server_address;
+  const char* tacacs_secure_key;
+  bool tacacs_fallback_pass;
+  const char* interface_address;
+  const char* openolt_agent_address;
+
   //change this address and make the required changes for sub interface
-  std::string server_address("0.0.0.0:9191");
-  TaccController taccController("10.10.10.10", "key", true);
-  std::shared_ptr<Channel> channel = grpc::CreateChannel("127.0.0.1", grpc::InsecureChannelCredentials());
+  for (int i = 1; i < argc; ++i) {
+        if(strcmp(argv[i-1], "--tacacs_server_address") == 0 ) {
+            tacacs_server_address = argv[i];
+        } else if(strcmp(argv[i-1], "--tacacs_secure_key") == 0 ) {
+            tacacs_secure_key = argv[i];
+        } else if(strcmp(argv[i-1], "--tacacs_fallback_pass") == 0 ) {
+            tacacs_fallback_pass = ( *argv[i] == '0') ? false : true;
+        } else if(strcmp(argv[i-1], "--interface_address") == 0 ) {
+            interface_address = argv[i];
+        } else if(strcmp(argv[i-1], "--openolt_agent_address") == 0 ) {
+            openolt_agent_address = argv[i];
+        }
+    }
+
+  std::string server_address(interface_address);
+  TaccController taccController(tacacs_server_address, tacacs_secure_key, tacacs_fallback_pass);
+  std::shared_ptr<Channel> channel = grpc::CreateChannel(openolt_agent_address, grpc::InsecureChannelCredentials());
   ProxyClient client(channel);
   ProxyServiceImpl service(&taccController, &client);
 

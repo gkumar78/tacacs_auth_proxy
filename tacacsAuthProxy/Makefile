@@ -61,7 +61,7 @@ LIBTACPLUS_PATH=$(shell pkg-config --libs-only-L libtac | sed s/-L// | sed s/\ /
 
 CXX = g++
 CXXFLAGS += -g -O2
-CXXFLAGS += $(shell pkg-config --cflags-only-I grpc++)
+CXXFLAGS += $(shell pkg-config --cflags-only-I grpc++) -Wl --unresolved-symbols=ignore-all
 CPPFLAGS += 
 CPPFLAGS += `pkg-config --cflags protobuf grpc`
 CPPFLAGS += -DVERSION=\"$(VERSION)\" -DLABEL_VCS_URL=\"$(LABEL_VCS_URL)\" \
@@ -70,7 +70,7 @@ CPPFLAGS += -DVERSION=\"$(VERSION)\" -DLABEL_VCS_URL=\"$(LABEL_VCS_URL)\" \
 CPPFLAGS += -I./
 CXXFLAGS += -std=c++11 -fpermissive -Wno-literal-suffix -DTEST_MODE -DENABLE_LOG -DCARES_STATICLIB -pthread -I/usr/local/include
 LDFLAGS += 
-LDFLAGS += `pkg-config --libs protobuf grpc++ grpc` -ldl -lgpr -lpthread
+LDFLAGS += `pkg-config --libs protobuf grpc++ grpc libtac` -ldl -lgpr -lpthread -lcrypto -lssl
 
 export CXX CXXFLAGS
 
