@@ -5,6 +5,9 @@ config.status
 autom4te.cache
 **/.cmake.state
 
+# vi swap files
+**/*.swp
+
 # Google APIs
 protos/googleapis
 

@@ -57,7 +57,7 @@ LABEL_COMMIT_DATE   = $(shell git show -s --format=%cd --date=iso-strict HEAD)
 
 LIBGRPC_PATH=$(shell pkg-config --libs-only-L grpc | sed s/-L// | sed s/\ //g)
 LIBPROTOBUF_PATH=$(shell PKG_CONFIG_ALLOW_SYSTEM_LIBS=true pkg-config --libs-only-L protobuf | sed s/-L// | sed s/\ //g)
-LIBTACPLUS_PATH=$(shell pkg-config --libs-only-L pam_tacplus | sed s/-L// | sed s/\ //g)
+LIBTACPLUS_PATH=$(shell pkg-config --libs-only-L libtac | sed s/-L// | sed s/\ //g)
 
 CXX = g++
 CXXFLAGS += -g -O2
@@ -70,9 +70,9 @@ CPPFLAGS += -DVERSION=\"$(VERSION)\" -DLABEL_VCS_URL=\"$(LABEL_VCS_URL)\" \
 CPPFLAGS += -I./
 CXXFLAGS += -std=c++11 -fpermissive -Wno-literal-suffix -DTEST_MODE -DENABLE_LOG -DCARES_STATICLIB -pthread -I/usr/local/include
 LDFLAGS += 
-LDFLAGS += `pkg-config --libs protobuf grpc++ grpc` -ldl -lgpr
+LDFLAGS += `pkg-config --libs protobuf grpc++ grpc` -ldl -lgpr -lpthread
 
-export CXX CXXFLAGS OPENOLT_PROTO_VER
+export CXX CXXFLAGS
 
 .DEFAULT_GOAL := all
 
@@ -143,19 +143,21 @@ SRCS = $(wildcard src/*.cc)
 OBJS = $(SRCS:.cc=.o)
 DEPS = $(SRCS:.cc=.d)
 $(BUILD_DIR)/tacacs-auth-proxy: prereqs-local $(OBJS)
-	$(CXX) $(LDFLAGS) $(OBJS) $(OPENOLT_API_LIB) $(LIBPROTOBUF_PATH)/libprotobuf.a -o $@ $(shell pkg-config --libs protobuf grpc++ grpc)
+	mkdir -p $(BUILD_DIR)
+	$(CXX) $(OBJS) $(OPENOLT_API_LIB) $(LIBPROTOBUF_PATH)/libprotobuf.a -o $@ $(LDFLAGS)
 	ln -sf $(LIBGRPC_PATH)/libgrpc.so.6 $(BUILD_DIR)/libgrpc.so.6
 	ln -sf $(LIBGRPC_PATH)/libgrpc++.so.1 $(BUILD_DIR)/libgrpc++.so.1
 	ln -sf /usr/lib/x86_64-linux-gnu/libstdc++.so.6 $(BUILD_DIR)/libstdc++.so.6
-	ln -sf $(LIBTACPLUS_PATH)/libgrpc.so.6 $(BUILD_DIR)/libgrpc.so.6
+	ln -sf $(LIBTACPLUS_PATH)/libtac.so.2 $(BUILD_DIR)/libtac.so.2
 	strip $(BUILD_DIR)/tacacs-auth-proxy
 
 all: $(BUILD_DIR)/tacacs-auth-proxy
 
-clean: protos-clean 
+clean:
 	@rm -f $(OBJS) $(DEPS)
 	@rm -rf $(OPENOLT_PROTOS_DIR)/googleapis
-	@rm -f $(BUILD_DIR)/libgrpc.so.6 $(BUILD_DIR)/libgrpc++.so.1
+	@rm -f $(BUILD_DIR)/libgrpc.so.6 $(BUILD_DIR)/libgrpc++.so.1 
+	@rm -f $(BUILD_DIR)/libstdc++.so.6 $(BUILD_DIR)/libtac.so.2
 	@rm -f $(BUILD_DIR)/tacacs-auth-proxy
 	@rm -f $(BUILD_DIR)/tacacs-auth-proxy-$(VERSION).deb
 
