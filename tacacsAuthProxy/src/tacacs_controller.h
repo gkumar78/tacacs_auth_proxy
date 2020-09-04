@@ -15,38 +15,32 @@
 #include <stdio.h>
 #include <syslog.h>
 #include <cstring>
+#include "grpcpp/grpcpp.h"
 
 extern "C" {
-#include "libtac/include/libtac.h"
-#include "libtac/include/tacplus.h"
+#include "libtac/libtac.h"
+#include "libtac/tacplus.h"
 }
 
+
 using namespace std;
+using namespace grpc;
 
 class TaccController {
     int tac_fd;
-    int ret;
-    struct areply arep;
-    time_t t;
-    struct tm tm;
-    char buf[40];
-    int task_id;
-    char* service;
-    char* protocol;
 
     const char* server_address;
     const char* secure_key;
     bool fallback_pass;
 
-    struct addrinfo *tac_server;
-    int retVal;
-
+    char* remote_addr;
+    char* tty;
 
   public:
     TaccController(const char* server_address, const char* secure_key, bool fallback_pass);
 
-    int Authenticate(const char* user, const char* pass);
-    int Authorize(const char* user, const char* pass, std::string methodName);
-    int StartAccounting(std::string methodName);
-    int StopAccounting(std::string methodName);
+    Status Authenticate(const char* user, const char* pass);
+    Status Authorize(const char* user, string methodName);
+    int StartAccounting(const char* user, string methodName);
+    void StopAccounting(const char* user, int task_id, string methodName);
 };

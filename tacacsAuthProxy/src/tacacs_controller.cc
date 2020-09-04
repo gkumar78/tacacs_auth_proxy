@@ -12,77 +12,79 @@
  */
 
 #include "tacacs_controller.h"
+#include "logger.h"
 
-
-class TaccController {
-
-  private:
-    char* remote_addr =  "1.1.1.1";
-    char* tty = "ttyS0";
-
-
-  public:
-    TaccController(const char* tacacs_server_address, const char* tacacs_secure_key, bool tacacs_fallback_pass){
+TaccController::TaccController(const char* tacacs_server_address, const char* tacacs_secure_key, bool tacacs_fallback_pass){
         server_address = tacacs_server_address;
 	secure_key = tacacs_secure_key;
 	fallback_pass = tacacs_fallback_pass;
+	remote_addr =  "1.1.1.1";
+	tty =  "ttyS0";
     }
 	
 
-    int Authenticate(const char* user, const char* pass) {
-        tac_fd = tac_connect_single(tac_server, tac_secret, NULL, 60);
+Status TaccController::Authenticate(const char* user, const char* pass) {
+	struct addrinfo *tac_server = NULL;
+        tac_fd = tac_connect_single(tac_server, secure_key, NULL, 60);
     	if (tac_fd < 0) {
-            printf("Error connecting to TACACS+ server: %m\n");
-            return Status::NOT_FOUND;
+            LOG_F(INFO, "Error connecting to TACACS+ server: %m\n");
+            return Status(UNAVAILABLE, "Error connecting to TACACS Server");
     	}
 
     	/* start authentication */
     	if (tac_authen_send(tac_fd, user, pass, tty, remote_addr, TAC_PLUS_AUTHEN_LOGIN) < 0) {
-            printf("Error sending query to TACACS+ server\n");
-            return Status::UNAUTHENTICATED;
+            LOG_F(INFO, "Error sending query to TACACS+ server\n");
+            return Status(UNAVAILABLE, "Error sending query to TACACS Server"); 
     	}
 
-    	ret = tac_authen_read(tac_fd, &arep);
+	struct areply arep;
+    	int ret = tac_authen_read(tac_fd, &arep);
 	if (ret == TAC_PLUS_AUTHEN_STATUS_GETPASS) {
             if (tac_cont_send(tac_fd, pass) < 0) {
-	        printf("Error sending query to TACACS+ server\n");
-                return Status::UNAUTHENTICATED;
+	        LOG_F(INFO, "Error sending query to TACACS+ server\n");
+                return Status(UNAVAILABLE, "Error sending query to TACACS+ server");
             }
        	    ret = tac_authen_read(tac_fd, &arep);
 	}
 
     	if (ret != TAC_PLUS_AUTHEN_STATUS_PASS) {
-            printf("Authentication FAILED: %s\n", arep.msg);
-            return Status::UNAUTHENTICATED;
+            LOG_F(INFO, "Authentication FAILED: %s\n", arep.msg);
+            return Status(UNAUTHENTICATED, "Authentication FAILED");
     	}
 
-    	printf("Authentication OK\n");
-   	    return Status::OK;
+    	LOG_F(INFO, "Authentication OK\n");
+   	    return Status(OK, "");
     }
 
-    int Authorize(const char* user) {
+Status TaccController::Authorize(const char* user, string methodName) {
         struct tac_attrib *attr = NULL;
 
-        tac_add_attrib(&attr, "service", service);
-        tac_add_attrib(&attr, "protocol", protocol);
+        tac_add_attrib(&attr, "service", "shell");
+	char c[methodName.size() + 1];
+        strcpy(c, methodName.c_str());
+        tac_add_attrib(&attr, "cmd", c);
 
+	struct areply arep;
         tac_author_send(tac_fd, user, tty, remote_addr, attr);
         tac_author_read(tac_fd, &arep);
 
         if (arep.status != AUTHOR_STATUS_PASS_ADD && arep.status != AUTHOR_STATUS_PASS_REPL) {
-            printf("Authorization FAILED: %s\n", arep.msg);
-            return Status::PERMISSION_DENIED;
+            LOG_F(INFO, "Authorization FAILED: %s\n", arep.msg);
+            return Status(PERMISSION_DENIED, "Authorization FAILED");
         }
 
-        printf("Authorization OK: %s\n", arep.msg);
+        LOG_F(INFO, "Authorization OK: %s\n", arep.msg);
         tac_free_attrib(&attr);
-        return Status::OK;
+        return Status(OK,"");
     }
 
-    int StartAccounting(std:string methodName) {
+int TaccController::StartAccounting(const char* user, string methodName) {
         struct tac_attrib *attr = NULL;
-       	task_id = 0;
-       	t = time(0);
+       	int task_id = 0;
+       	time_t t = time(0);
+	struct tm tm;
+	char buf[40];
+
        	gmtime_r(&t, &tm);
        	strftime(buf, sizeof(buf), "%s", &tm);
        	tac_add_attrib(&attr, "start_time", buf);
@@ -93,25 +95,31 @@ class TaccController {
 
        	sprintf(buf, "%hu", task_id);
        	tac_add_attrib(&attr, "task_id", buf);
-       	tac_add_attrib(&attr, "service", service);
-       	tac_add_attrib(&attr, "protocol", protocol);
+       	tac_add_attrib(&attr, "service", "shell");
+	char c[methodName.size() + 1];
+        strcpy(c, methodName.c_str());
+       	tac_add_attrib(&attr, "cmd", c);
 
        	tac_acct_send(tac_fd, TAC_PLUS_ACCT_FLAG_START, user, tty, remote_addr, attr);
 
-       	ret = tac_acct_read(tac_fd, &arep);
+	struct areply arep;
+       	int ret = tac_acct_read(tac_fd, &arep);
        	if (ret == 0) {
-     	    printf("Accounting: START failed: %s\n", arep.msg);
-	    return Status::INTERNAL;
+     	    LOG_F(INFO, "Accounting: START failed: %s\n", arep.msg);
+	    return -1;
         }
-        printf("Accounting: START OK\n");
+        LOG_F(INFO, "Accounting: START OK\n");
 
         tac_free_attrib(&attr);
+        return task_id;
     }
 
-    int StopAccounting(std:string methodName) {
+void TaccController::StopAccounting(const char* user, int task_id, string methodName) {
         struct tac_attrib *attr = NULL;
-        task_id = 0;
-        t = time(0);
+       	time_t t = time(0);
+	struct tm tm;
+	char buf[40];
+
         gmtime_r(&t, &tm);
         strftime(buf, sizeof(buf), "%s", &tm);
         tac_add_attrib(&attr, "stop_time", buf);
@@ -119,14 +127,14 @@ class TaccController {
         tac_add_attrib(&attr, "task_id", buf);
 
         tac_acct_send(tac_fd, TAC_PLUS_ACCT_FLAG_STOP, user, tty, remote_addr, attr);
-        ret = tac_acct_read(tac_fd, &arep);
+	struct areply arep;
+        int ret = tac_acct_read(tac_fd, &arep);
         if (ret == 0) {
-            printf("Accounting: STOP failed: %s", arep.msg);
-	    return Status::INTERNAL;
+            LOG_F(INFO, "Accounting: STOP failed: %s", arep.msg);
+	    return;
         }
-        printf("Accounting: STOP OK\n");
+        LOG_F(INFO, "Accounting: STOP OK\n");
 
         tac_free_attrib(&attr);
     }	
 
-};
