@@ -139,7 +139,7 @@ protos-clean:
 ##        tacacs-auth-proxy
 ##
 ##
-SRCS = $(wildcard temp_girish/*.cc) 
+SRCS = $(wildcard src/*.cc) 
 OBJS = $(SRCS:.cc=.o)
 DEPS = $(SRCS:.cc=.d)
 $(BUILD_DIR)/tacacs-auth-proxy: prereqs-local $(OBJS)
