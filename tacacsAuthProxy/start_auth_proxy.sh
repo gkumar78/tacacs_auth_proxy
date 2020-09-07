@@ -13,4 +13,4 @@ OPENOLT_AGENT_ADDRESS=127.0.0.1:9191
 [ -z "$INTERFACE_ADDRESS" ] || APPARGS+=" --interface_address $INTERFACE_ADDRESS"
 [ -z "$OPENOLT_AGENT_ADDRESS" ] || APPARGS+=" --openolt_agent_address $OPENOLT_AGENT_ADDRESS"
 
-$SCRIPTDIR/build/tacacs-auth-proxy $APPARGS $@
+$SCRIPTDIR/build/tacacsproxy $APPARGS $@
