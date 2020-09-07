@@ -1,0 +1,12 @@
+Source: tacacs-auth-proxy
+Section: misc
+Priority: extra
+Maintainer: volthadev <volthadev@localhost>
+Build-Depends: debhelper (>=4.0.0)
+Standards-Version: 3.9.6
+Homepage: None
+
+Package: tacacs-auth-proxy
+Architecture: amd64
+Depends: ${shlibs:Depends}
+Description: Tacacs Authentication Proxy for Openolt Agent

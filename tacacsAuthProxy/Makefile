@@ -47,7 +47,7 @@ USER := $(shell echo $(USER))
 HOST_SYSTEM = $(shell uname | cut -f 1 -d_)
 SYSTEM ?= $(HOST_SYSTEM)
 
-VERSION                 ?= $(shell cat ../VERSION)
+VERSION ?= 1.0.0
 
 #set ref and commit date only if committed
 LABEL_VCS_URL       ?= $(shell git remote get-url $(shell git remote))
@@ -142,29 +142,59 @@ protos-clean:
 SRCS = $(wildcard src/*.cc) 
 OBJS = $(SRCS:.cc=.o)
 DEPS = $(SRCS:.cc=.d)
-$(BUILD_DIR)/tacacs-auth-proxy: prereqs-local $(OBJS)
+$(BUILD_DIR)/tacacsproxy: prereqs-local $(OBJS)
 	mkdir -p $(BUILD_DIR)
 	$(CXX) $(OBJS) $(OPENOLT_API_LIB) $(LIBPROTOBUF_PATH)/libprotobuf.a -o $@ $(LDFLAGS)
-	ln -sf $(LIBGRPC_PATH)/libgrpc.so.6 $(BUILD_DIR)/libgrpc.so.6
+	ln -sf $(LIBGRPC_PATH)/libgrpc.so.9 $(BUILD_DIR)/libgrpc.so.9
+	ln -sf $(LIBGRPC_PATH)/libgpr.so.9 $(BUILD_DIR)/libgpr.so.9
+	ln -sf $(LIBGRPC_PATH)/libupb.so.9 $(BUILD_DIR)/libupb.so.9
 	ln -sf $(LIBGRPC_PATH)/libgrpc++.so.1 $(BUILD_DIR)/libgrpc++.so.1
 	ln -sf /usr/lib/x86_64-linux-gnu/libstdc++.so.6 $(BUILD_DIR)/libstdc++.so.6
 	ln -sf $(LIBTACPLUS_PATH)/libtac.so.2 $(BUILD_DIR)/libtac.so.2
-	strip $(BUILD_DIR)/tacacs-auth-proxy
+	strip $(BUILD_DIR)/tacacsproxy
 
-all: $(BUILD_DIR)/tacacs-auth-proxy
+all: $(BUILD_DIR)/tacacsproxy
+
+deb:
+	cp $(BUILD_DIR)/tacacsproxy device/mkdebian/debian
+	cp $(BUILD_DIR)/libgrpc.so.9 device/mkdebian/debian
+	cp $(BUILD_DIR)/libgpr.so.9 device/mkdebian/debian
+	cp $(BUILD_DIR)/libupb.so.9 device/mkdebian/debian
+	cp $(BUILD_DIR)/libgrpc++.so.1 device/mkdebian/debian
+	cp $(BUILD_DIR)/libstdc++.so.6 device/mkdebian/debian
+	cp $(BUILD_DIR)/libtac.so.2 device/mkdebian/debian
+	cp -a scripts/init.d device/mkdebian/debian
+	cp -a scripts/config device/mkdebian/debian
+	cd device/mkdebian && ./build_deb.sh
+	mv device/*.deb $(BUILD_DIR)/tacacs-auth-proxy_$(VERSION).deb
+	make deb-cleanup
+
+deb-cleanup:
+	rm -rf device/mkdebian/debian/tacacsproxy
+	rm -rf device/mkdebian/debian/libgrpc.so.9
+	rm -rf device/mkdebian/debian/libgpr.so.9
+	rm -rf device/mkdebian/debian/libupb.so.9
+	rm -rf device/mkdebian/debian/libgrpc++.so.1
+	rm -rf device/mkdebian/debian/libstdc++.so.6
+	rm -rf device/mkdebian/debian/libtac.so.2
+	rm -rf device/mkdebian/debian/init.d/
+	rm -rf device/mkdebian/debian/config/
+	rm -rf device/mkdebian/debian/tmp/
+	rm -rf device/mkdebian/debian/tacacs-auth-proxy/
 
 clean:
-	@rm -f $(OBJS) $(DEPS)
-	@rm -rf $(OPENOLT_PROTOS_DIR)/googleapis
-	@rm -f $(BUILD_DIR)/libgrpc.so.6 $(BUILD_DIR)/libgrpc++.so.1 
-	@rm -f $(BUILD_DIR)/libstdc++.so.6 $(BUILD_DIR)/libtac.so.2
-	@rm -f $(BUILD_DIR)/tacacs-auth-proxy
-	@rm -f $(BUILD_DIR)/tacacs-auth-proxy-$(VERSION).deb
+	rm -f $(OBJS) $(DEPS)
+	rm -f $(BUILD_DIR)/libgrpc.so.9 $(BUILD_DIR)/libgrpc++.so.1 
+	rm -f $(BUILD_DIR)/libgpr.so.9 $(BUILD_DIR)/libupb.so.9
+	rm -f $(BUILD_DIR)/libstdc++.so.6 $(BUILD_DIR)/libtac.so.2
+	rm -f $(BUILD_DIR)/tacacsproxy
+	rm -f $(BUILD_DIR)/tacacs-auth-proxy-$(VERSION).deb
 
 clean-src: protos-clean
-	@rm -f $(OBJS) $(DEPS)
+	rm -f $(OBJS) $(DEPS)
+	rm -rf $(OPENOLT_PROTOS_DIR)/googleapis
 
 distclean: clean-src clean prereqs-local-clean
-	@rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR)
 
 .PHONY: protos prereqs-system prereqs-local .FORCE
