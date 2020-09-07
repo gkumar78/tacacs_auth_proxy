@@ -25,6 +25,16 @@ TaccController::TaccController(const char* tacacs_server_address, const char* ta
 
 Status TaccController::Authenticate(const char* user, const char* pass) {
 	struct addrinfo *tac_server = NULL;
+        struct addrinfo hints;
+        memset(&hints, 0, sizeof hints);
+        hints.ai_family = AF_UNSPEC;
+        hints.ai_socktype = SOCK_STREAM;
+        int ret = getaddrinfo(server_address, "tacacs", &hints, &tac_server);
+        if (ret != 0) {
+            LOG_F(INFO, "Error: resolving name %s: %s", server_address, gai_strerror(ret));
+            return Status(UNAVAILABLE, "Error: resolving name");
+        }
+
         tac_fd = tac_connect_single(tac_server, secure_key, NULL, 60);
     	if (tac_fd < 0) {
             LOG_F(INFO, "Error connecting to TACACS+ server: %m\n");
@@ -38,7 +48,7 @@ Status TaccController::Authenticate(const char* user, const char* pass) {
     	}
 
 	struct areply arep;
-    	int ret = tac_authen_read(tac_fd, &arep);
+    	ret = tac_authen_read(tac_fd, &arep);
 	if (ret == TAC_PLUS_AUTHEN_STATUS_GETPASS) {
             if (tac_cont_send(tac_fd, pass) < 0) {
 	        LOG_F(INFO, "Error sending query to TACACS+ server\n");

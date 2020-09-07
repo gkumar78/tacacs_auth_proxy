@@ -17,6 +17,7 @@
 #include <sstream>
 #include <grpcpp/health_check_service_interface.h>
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
+#include <grpcpp/grpcpp.h>
 
 #include <voltha_protos/openolt.grpc.pb.h>
 #include <voltha_protos/tech_profile.grpc.pb.h>
@@ -25,6 +26,8 @@
 #include "proxy_client.h"
 #include "logger.h"
 
+using grpc::Channel;
+using grpc::ChannelArguments;
 using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
@@ -153,22 +156,28 @@ void RunServer(int argc, char** argv) {
         }
     }
 
-  std::string server_address(interface_address);
+  //const char* server_address(interface_address);
+  LOG_F(INFO, "Creating TaccController");
   TaccController taccController(tacacs_server_address, tacacs_secure_key, tacacs_fallback_pass);
+  LOG_F(INFO, "Creating GRPC Channel");
   std::shared_ptr<Channel> channel = grpc::CreateChannel(openolt_agent_address, grpc::InsecureChannelCredentials());
+  LOG_F(INFO, "Creating GRPC Client");
   ProxyClient client(channel);
+  LOG_F(INFO, "Creating Proxy Server");
   ProxyServiceImpl service(&taccController, &client);
+  LOG_F(INFO, "Created Proxy Server");
 
   grpc::EnableDefaultHealthCheckService(true);
-  grpc::reflection::InitProtoReflectionServerBuilderPlugin();
+  //grpc::reflection::InitProtoReflectionServerBuilderPlugin();
   ServerBuilder builder;
 
-  builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
+  LOG_F(INFO, "Starting Proxy Server");
+  builder.AddListeningPort(interface_address, grpc::InsecureServerCredentials());
 
   builder.RegisterService(&service);
 
   std::unique_ptr<Server> server(builder.BuildAndStart());
-  std::cout << "Server listening on " << server_address << std::endl;
+  //std::cout << "Server listening on " << server_address << std::endl;
 
   server->Wait();
 }
