@@ -18,14 +18,16 @@ TOP_DIR=`pwd`
 # Build directory
 BUILD_DIR = build
 
+OPENOLT_PROTO_VER ?= v3.3.9
+
 # Protobuf installation
-PROTOBUF_VER ?= 3.11.4
+PROTOBUF_VER ?= 3.5.0
 PROTOBUF_ADDR = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOBUF_VER)/protobuf-cpp-$(PROTOBUF_VER).tar.gz
 PROTOBUF_DST = /tmp/protobuf-$(PROTOBUF_VER)
 protoc-bin = /usr/local/bin/protoc
 
 # Libtac installation
-LIBTAC_VER = v1.5.x
+LIBTAC_VER = v1.4.1
 LIBTAC_ADDR = https://github.com/kravietz/pam_tacplus.git
 LIBTAC_DST = /tmp/libtac-$(LIBTAC_VER)
 tacc-bin = /usr/local/bin/tacc
@@ -33,7 +35,7 @@ tacc-bin = /usr/local/bin/tacc
 # GRPC installation
 GRPC_ADDR = https://github.com/grpc/grpc
 GRPC_DST = /tmp/grpc
-GRPC_VER = v1.27.1
+GRPC_VER = v1.10.x
 grpc-cpp-plugin-bin = /usr/local/bin/grpc_cpp_plugin
 
 USER := $(shell echo $(USER))
@@ -59,7 +61,7 @@ LIBGRPC_PATH=$(shell pkg-config --libs-only-L grpc | sed s/-L// | sed s/\ //g)
 LIBPROTOBUF_PATH=$(shell PKG_CONFIG_ALLOW_SYSTEM_LIBS=true pkg-config --libs-only-L protobuf | sed s/-L// | sed s/\ //g)
 LIBTACPLUS_PATH=$(shell pkg-config --libs-only-L libtac | sed s/-L// | sed s/\ //g)
 
-CXX = g++
+CXX = g++-4.9
 CXXFLAGS += -g -O2
 #CXXFLAGS += $(shell pkg-config --cflags-only-I grpc++) -Wl,--unresolved-symbols=ignore-all
 CXXFLAGS += $(shell pkg-config --cflags-only-I grpc++)
@@ -74,13 +76,13 @@ LDFLAGS +=
 LDFLAGS += `pkg-config --libs protobuf grpc++ grpc libtac` -ldl -lgpr -lpthread -lcrypto -lssl -Wl,--unresolved-symbols=ignore-all
 #LDFLAGS += `pkg-config --libs protobuf grpc++ grpc libtac` -ldl -lgpr -lpthread -lcrypto -lssl
 
-export CXX CXXFLAGS
+export CXX CXXFLAGS OPENOLT_PROTO_VER
 
 .DEFAULT_GOAL := all
 
 prereqs-system:
-	sudo apt-get -q -y install git pkg-config build-essential autoconf libtool libgflags-dev libgtest-dev clang libc++-dev unzip docker.io
-	sudo apt-get install -y build-essential autoconf libssl-dev gawk debhelper dh-systemd init-system-helpers curl cmake ccache g++-4.9
+	sudo apt-get -q -y install git pkg-config build-essential autoconf libtool libgflags-dev libgtest-dev clang unzip docker.io
+	sudo apt-get install -y build-essential autoconf libssl-dev gawk debhelper dh-systemd init-system-helpers curl cmake ccache g++-4.9 cpp-4.9
 	sudo apt-get install -y libpam-tacplus automake libpam-dev libssl-dev
 
 prereqs-local: $(protoc-bin) $(grpc-cpp-plugin-bin) $(tacc-bin)
@@ -147,10 +149,9 @@ DEPS = $(SRCS:.cc=.d)
 $(BUILD_DIR)/tacacsproxy: prereqs-local $(OBJS)
 	mkdir -p $(BUILD_DIR)
 	$(CXX) $(OBJS) $(OPENOLT_API_LIB) $(LIBPROTOBUF_PATH)/libprotobuf.a -o $@ $(LDFLAGS)
-	ln -sf $(LIBPROTOBUF_PATH)/libprotobuf.so.22 $(BUILD_DIR)/libprotobuf.so.22
-	ln -sf $(LIBGRPC_PATH)/libgrpc.so.9 $(BUILD_DIR)/libgrpc.so.9
-	ln -sf $(LIBGRPC_PATH)/libgpr.so.9 $(BUILD_DIR)/libgpr.so.9
-	ln -sf $(LIBGRPC_PATH)/libupb.so.9 $(BUILD_DIR)/libupb.so.9
+	ln -sf $(LIBPROTOBUF_PATH)/libprotobuf.so.15 $(BUILD_DIR)/libprotobuf.so.15
+	ln -sf $(LIBGRPC_PATH)/libgrpc.so.6 $(BUILD_DIR)/libgrpc.so.6
+	ln -sf $(LIBGRPC_PATH)/libgpr.so.6 $(BUILD_DIR)/libgpr.so.6
 	ln -sf $(LIBGRPC_PATH)/libgrpc++.so.1 $(BUILD_DIR)/libgrpc++.so.1
 	ln -sf /usr/lib/x86_64-linux-gnu/libstdc++.so.6 $(BUILD_DIR)/libstdc++.so.6
 	ln -sf $(LIBTACPLUS_PATH)/libtac.so.2 $(BUILD_DIR)/libtac.so.2
@@ -160,10 +161,9 @@ all: $(BUILD_DIR)/tacacsproxy
 
 deb:
 	cp $(BUILD_DIR)/tacacsproxy device/mkdebian/debian
-	cp $(BUILD_DIR)/libprotobuf.so.22 device/mkdebian/debian
-	cp $(BUILD_DIR)/libgrpc.so.9 device/mkdebian/debian
-	cp $(BUILD_DIR)/libgpr.so.9 device/mkdebian/debian
-	cp $(BUILD_DIR)/libupb.so.9 device/mkdebian/debian
+	cp $(BUILD_DIR)/libprotobuf.so.15 device/mkdebian/debian
+	cp $(BUILD_DIR)/libgrpc.so.6 device/mkdebian/debian
+	cp $(BUILD_DIR)/libgpr.so.6 device/mkdebian/debian
 	cp $(BUILD_DIR)/libgrpc++.so.1 device/mkdebian/debian
 	cp $(BUILD_DIR)/libstdc++.so.6 device/mkdebian/debian
 	cp $(BUILD_DIR)/libtac.so.2 device/mkdebian/debian
@@ -175,10 +175,9 @@ deb:
 
 deb-cleanup:
 	rm -rf device/mkdebian/debian/tacacsproxy
-	rm -rf device/mkdebian/debian/libprotobuf.so.22
-	rm -rf device/mkdebian/debian/libgrpc.so.9
-	rm -rf device/mkdebian/debian/libgpr.so.9
-	rm -rf device/mkdebian/debian/libupb.so.9
+	rm -rf device/mkdebian/debian/libprotobuf.so.15
+	rm -rf device/mkdebian/debian/libgrpc.so.6
+	rm -rf device/mkdebian/debian/libgpr.so.6
 	rm -rf device/mkdebian/debian/libgrpc++.so.1
 	rm -rf device/mkdebian/debian/libstdc++.so.6
 	rm -rf device/mkdebian/debian/libtac.so.2
@@ -189,9 +188,9 @@ deb-cleanup:
 
 clean:
 	rm -f $(OBJS) $(DEPS)
-	rm -f $(BUILD_DIR)/libprotobuf.so.22
-	rm -f $(BUILD_DIR)/libgrpc.so.9 $(BUILD_DIR)/libgrpc++.so.1 
-	rm -f $(BUILD_DIR)/libgpr.so.9 $(BUILD_DIR)/libupb.so.9
+	rm -f $(BUILD_DIR)/libprotobuf.so.15
+	rm -f $(BUILD_DIR)/libgrpc.so.6 $(BUILD_DIR)/libgrpc++.so.1 
+	rm -f $(BUILD_DIR)/libgpr.so.6 
 	rm -f $(BUILD_DIR)/libstdc++.so.6 $(BUILD_DIR)/libtac.so.2
 	rm -f $(BUILD_DIR)/tacacsproxy
 	rm -f $(BUILD_DIR)/tacacs-auth-proxy-$(VERSION).deb

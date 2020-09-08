@@ -22,11 +22,10 @@ sleep 2
 
 rm -f /usr/local/bin/tacacsproxy
 
-rm -f /usr/local/lib/libprotobuf.so.22
+rm -f /usr/local/lib/libprotobuf.so.15
 rm -f /usr/local/lib/libgrpc++.so.1
-rm -f /usr/local/lib/libgrpc.so.9
-rm -f /usr/local/lib/libgpr.so.9
-rm -f /usr/local/lib/libupb.so.9
+rm -f /usr/local/lib/libgrpc.so.6
+rm -f /usr/local/lib/libgpr.so.6
 rm -f /usr/local/lib/libtac.so.2
 rm -f /usr/local/lib/libstdc++.so.6
 
