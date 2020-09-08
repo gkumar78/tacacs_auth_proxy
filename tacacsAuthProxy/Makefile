@@ -61,7 +61,8 @@ LIBTACPLUS_PATH=$(shell pkg-config --libs-only-L libtac | sed s/-L// | sed s/\ /
 
 CXX = g++
 CXXFLAGS += -g -O2
-CXXFLAGS += $(shell pkg-config --cflags-only-I grpc++) -Wl,--unresolved-symbols=ignore-all
+#CXXFLAGS += $(shell pkg-config --cflags-only-I grpc++) -Wl,--unresolved-symbols=ignore-all
+CXXFLAGS += $(shell pkg-config --cflags-only-I grpc++)
 CPPFLAGS += 
 CPPFLAGS += `pkg-config --cflags protobuf grpc`
 CPPFLAGS += -DVERSION=\"$(VERSION)\" -DLABEL_VCS_URL=\"$(LABEL_VCS_URL)\" \
@@ -71,6 +72,7 @@ CPPFLAGS += -I./
 CXXFLAGS += -std=c++11 -fpermissive -Wno-literal-suffix -DTEST_MODE -DENABLE_LOG -DCARES_STATICLIB -pthread -I/usr/local/include
 LDFLAGS += 
 LDFLAGS += `pkg-config --libs protobuf grpc++ grpc libtac` -ldl -lgpr -lpthread -lcrypto -lssl -Wl,--unresolved-symbols=ignore-all
+#LDFLAGS += `pkg-config --libs protobuf grpc++ grpc libtac` -ldl -lgpr -lpthread -lcrypto -lssl
 
 export CXX CXXFLAGS
 
@@ -145,6 +147,7 @@ DEPS = $(SRCS:.cc=.d)
 $(BUILD_DIR)/tacacsproxy: prereqs-local $(OBJS)
 	mkdir -p $(BUILD_DIR)
 	$(CXX) $(OBJS) $(OPENOLT_API_LIB) $(LIBPROTOBUF_PATH)/libprotobuf.a -o $@ $(LDFLAGS)
+	ln -sf $(LIBPROTOBUF_PATH)/libprotobuf.so.22 $(BUILD_DIR)/libprotobuf.so.22
 	ln -sf $(LIBGRPC_PATH)/libgrpc.so.9 $(BUILD_DIR)/libgrpc.so.9
 	ln -sf $(LIBGRPC_PATH)/libgpr.so.9 $(BUILD_DIR)/libgpr.so.9
 	ln -sf $(LIBGRPC_PATH)/libupb.so.9 $(BUILD_DIR)/libupb.so.9
@@ -157,6 +160,7 @@ all: $(BUILD_DIR)/tacacsproxy
 
 deb:
 	cp $(BUILD_DIR)/tacacsproxy device/mkdebian/debian
+	cp $(BUILD_DIR)/libprotobuf.so.22 device/mkdebian/debian
 	cp $(BUILD_DIR)/libgrpc.so.9 device/mkdebian/debian
 	cp $(BUILD_DIR)/libgpr.so.9 device/mkdebian/debian
 	cp $(BUILD_DIR)/libupb.so.9 device/mkdebian/debian
@@ -171,6 +175,7 @@ deb:
 
 deb-cleanup:
 	rm -rf device/mkdebian/debian/tacacsproxy
+	rm -rf device/mkdebian/debian/libprotobuf.so.22
 	rm -rf device/mkdebian/debian/libgrpc.so.9
 	rm -rf device/mkdebian/debian/libgpr.so.9
 	rm -rf device/mkdebian/debian/libupb.so.9
@@ -184,6 +189,7 @@ deb-cleanup:
 
 clean:
 	rm -f $(OBJS) $(DEPS)
+	rm -f $(BUILD_DIR)/libprotobuf.so.22
 	rm -f $(BUILD_DIR)/libgrpc.so.9 $(BUILD_DIR)/libgrpc++.so.1 
 	rm -f $(BUILD_DIR)/libgpr.so.9 $(BUILD_DIR)/libupb.so.9
 	rm -f $(BUILD_DIR)/libstdc++.so.6 $(BUILD_DIR)/libtac.so.2

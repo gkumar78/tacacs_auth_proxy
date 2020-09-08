@@ -51,6 +51,7 @@ DEB_DH_INSTALL_SOURCEDIR = $(CURDIR)/debian/tmp
 override_dh_auto_install:
 	mkdir -p $(DEB_DH_INSTALL_SOURCEDIR)/tmp
 	cp -a $(CURDIR)/debian/libtac.so.2 $(DEB_DH_INSTALL_SOURCEDIR)/tmp
+	cp -a $(CURDIR)/debian/libprotobuf.so.22 $(DEB_DH_INSTALL_SOURCEDIR)/tmp
 	cp -a $(CURDIR)/debian/libgrpc++.so.1 $(DEB_DH_INSTALL_SOURCEDIR)/tmp
 	cp -a $(CURDIR)/debian/libgrpc.so.9 $(DEB_DH_INSTALL_SOURCEDIR)/tmp
 	cp -a $(CURDIR)/debian/libgpr.so.9 $(DEB_DH_INSTALL_SOURCEDIR)/tmp
