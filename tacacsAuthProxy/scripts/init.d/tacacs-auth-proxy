@@ -12,7 +12,7 @@
 
 NAME="tacacs-auth-proxy"
 PATH="/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin"
-APPDIR="/usr/sbin"
+APPDIR="/usr/local/bin"
 APPBIN="tacacsproxy"
 APPARGS=""
 USER="root"

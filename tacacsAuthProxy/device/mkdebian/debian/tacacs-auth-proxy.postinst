@@ -22,10 +22,9 @@ update-rc.d tacacs-auth-proxy defaults
 
 mv /tmp1/config/tacacs-auth-proxy.config /etc/default/tacacs-auth-proxy
 mv /tmp1/tacacsproxy /usr/local/bin
-mv /tmp1/libprotobuf.so.22 /usr/local/lib
+mv /tmp1/libprotobuf.so.15 /usr/local/lib
 mv /tmp1/libgrpc++.so.1 /usr/local/lib
-mv /tmp1/libgrpc.so.9 /usr/local/lib
-mv /tmp1/libgpr.so.9 /usr/local/lib
-mv /tmp1/libupb.so.9 /usr/local/lib
+mv /tmp1/libgrpc.so.6 /usr/local/lib
+mv /tmp1/libgpr.so.6 /usr/local/lib
 mv /tmp1/libstdc++.so.6 /usr/local/lib
 mv /tmp1/libtac.so.2 /usr/local/lib
