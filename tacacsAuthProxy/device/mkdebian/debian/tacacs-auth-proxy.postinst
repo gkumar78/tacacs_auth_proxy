@@ -15,17 +15,17 @@
 #limitations under the License.
 
 
-mv /tmp/init.d/tacacs-auth-proxy /etc/init.d
+mv /tmp1/init.d/tacacs-auth-proxy /etc/init.d
 chmod +x /etc/init.d/tacacs-auth-proxy
 
 update-rc.d tacacs-auth-proxy defaults
 
-mv /tmp/config/tacacs-auth-proxy.config /etc/default/tacacs-auth-proxy
-mv /tmp/tacacsproxy /usr/local/bin
-mv /tmp/libprotobuf.so.22 /usr/local/lib
-mv /tmp/libgrpc++.so.1 /usr/local/lib
-mv /tmp/libgrpc.so.9 /usr/local/lib
-mv /tmp/libgpr.so.9 /usr/local/lib
-mv /tmp/libupb.so.9 /usr/local/lib
-mv /tmp/libstdc++.so.6 /usr/local/lib
-mv /tmp/libtac.so.2 /usr/local/lib
+mv /tmp1/config/tacacs-auth-proxy.config /etc/default/tacacs-auth-proxy
+mv /tmp1/tacacsproxy /usr/local/bin
+mv /tmp1/libprotobuf.so.22 /usr/local/lib
+mv /tmp1/libgrpc++.so.1 /usr/local/lib
+mv /tmp1/libgrpc.so.9 /usr/local/lib
+mv /tmp1/libgpr.so.9 /usr/local/lib
+mv /tmp1/libupb.so.9 /usr/local/lib
+mv /tmp1/libstdc++.so.6 /usr/local/lib
+mv /tmp1/libtac.so.2 /usr/local/lib

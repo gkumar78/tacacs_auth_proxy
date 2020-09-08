@@ -18,8 +18,10 @@ TOP_DIR=`pwd`
 # Build directory
 BUILD_DIR = build
 
+OPENOLT_PROTO_VER ?= v3.3.9
+
 # Protobuf installation
-PROTOBUF_VER ?= 3.11.4
+PROTOBUF_VER ?= 3.5.0
 PROTOBUF_ADDR = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOBUF_VER)/protobuf-cpp-$(PROTOBUF_VER).tar.gz
 PROTOBUF_DST = /tmp/protobuf-$(PROTOBUF_VER)
 protoc-bin = /usr/local/bin/protoc
@@ -33,7 +35,7 @@ tacc-bin = /usr/local/bin/tacc
 # GRPC installation
 GRPC_ADDR = https://github.com/grpc/grpc
 GRPC_DST = /tmp/grpc
-GRPC_VER = v1.27.1
+GRPC_VER = v1.10.x
 grpc-cpp-plugin-bin = /usr/local/bin/grpc_cpp_plugin
 
 USER := $(shell echo $(USER))
@@ -59,7 +61,7 @@ LIBGRPC_PATH=$(shell pkg-config --libs-only-L grpc | sed s/-L// | sed s/\ //g)
 LIBPROTOBUF_PATH=$(shell PKG_CONFIG_ALLOW_SYSTEM_LIBS=true pkg-config --libs-only-L protobuf | sed s/-L// | sed s/\ //g)
 LIBTACPLUS_PATH=$(shell pkg-config --libs-only-L libtac | sed s/-L// | sed s/\ //g)
 
-CXX = g++
+CXX = g++-4.9
 CXXFLAGS += -g -O2
 #CXXFLAGS += $(shell pkg-config --cflags-only-I grpc++) -Wl,--unresolved-symbols=ignore-all
 CXXFLAGS += $(shell pkg-config --cflags-only-I grpc++)
@@ -74,7 +76,7 @@ LDFLAGS +=
 LDFLAGS += `pkg-config --libs protobuf grpc++ grpc libtac` -ldl -lgpr -lpthread -lcrypto -lssl -Wl,--unresolved-symbols=ignore-all
 #LDFLAGS += `pkg-config --libs protobuf grpc++ grpc libtac` -ldl -lgpr -lpthread -lcrypto -lssl
 
-export CXX CXXFLAGS
+export CXX CXXFLAGS OPENOLT_PROTO_VER
 
 .DEFAULT_GOAL := all
 
