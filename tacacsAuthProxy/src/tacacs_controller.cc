@@ -24,6 +24,7 @@ TaccController::TaccController(const char* tacacs_server_address, const char* ta
 	
 
 Status TaccController::Authenticate(const char* user, const char* pass) {
+        LOG_F(INFO, "Authentication");
 	struct addrinfo *tac_server = NULL;
         struct addrinfo hints;
         memset(&hints, 0, sizeof hints);
@@ -63,19 +64,45 @@ Status TaccController::Authenticate(const char* user, const char* pass) {
     	}
 
     	LOG_F(INFO, "Authentication OK\n");
-   	    return Status(OK, "");
+	close(tac_fd);
+   	return Status(OK, "");
     }
 
 Status TaccController::Authorize(const char* user, string methodName) {
+        LOG_F(INFO, "Authorize");
         struct tac_attrib *attr = NULL;
 
         tac_add_attrib(&attr, "service", "shell");
 	char c[methodName.size() + 1];
         strcpy(c, methodName.c_str());
         tac_add_attrib(&attr, "cmd", c);
+        //tac_add_attrib(&attr, "protocol", "ip");
+
+
+        struct addrinfo *tac_server = NULL;
+        struct addrinfo hints;
+        memset(&hints, 0, sizeof hints);
+        hints.ai_family = AF_UNSPEC;
+        hints.ai_socktype = SOCK_STREAM;
+        int ret = getaddrinfo(server_address, "tacacs", &hints, &tac_server);
+        if (ret != 0) {
+            LOG_F(INFO, "Error: resolving name %s: %s", server_address, gai_strerror(ret));
+            return Status(UNAVAILABLE, "Error: resolving name");
+        }
+        tac_fd = tac_connect_single(tac_server, secure_key, NULL, 60);
+        if (tac_fd < 0) {
+            LOG_F(INFO, "Error connecting to TACACS+ server: %m\n");
+            return Status(UNAVAILABLE, "Error connecting to TACACS Server");
+        }
 
 	struct areply arep;
-        tac_author_send(tac_fd, user, tty, remote_addr, attr);
+        LOG_F(INFO, "Authorize msg send");
+        if (tac_author_send(tac_fd, user, tty, remote_addr, attr) < 0) {
+            LOG_F(INFO, "Error sending authorization query to TACACS+ server\n");
+            return Status(UNAVAILABLE, "Error sending authorization query to TACACS Server");
+        }
+
+        LOG_F(INFO, "Authorize reply received");
         tac_author_read(tac_fd, &arep);
 
         if (arep.status != AUTHOR_STATUS_PASS_ADD && arep.status != AUTHOR_STATUS_PASS_REPL) {
@@ -85,6 +112,7 @@ Status TaccController::Authorize(const char* user, string methodName) {
 
         LOG_F(INFO, "Authorization OK: %s\n", arep.msg);
         tac_free_attrib(&attr);
+        close(tac_fd);
         return Status(OK,"");
     }
 
