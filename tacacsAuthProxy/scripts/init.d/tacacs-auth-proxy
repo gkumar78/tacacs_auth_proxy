@@ -21,10 +21,10 @@ GROUP="root"
 # Pass default config parameters as CLI arguments
 [ -r /etc/default/tacacs-auth-proxy ] && . /etc/default/tacacs-auth-proxy
 [ -z "$TACACS_SERVER_ADDRESS" ] || APPARGS="--tacacs_server_address $TACACS_SERVER_ADDRESS"
-[ -z "$TACACS_SECURE_KEY" ] || APPARGS+=" --tacacs_secure_key $TACACS_SECURE_KEY"
-[ -z "$TACACS_FALLBACK_PASS" ] || APPARGS+=" --tacacs_fallback_pass $TACACS_FALLBACK_PASS"
-[ -z "$INTERFACE_ADDRESS" ] || APPARGS+=" --interface_address $INTERFACE_ADDRESS"
-[ -z "$OPENOLT_AGENT_ADDRESS" ] || APPARGS+=" --openolt_agent_address $OPENOLT_AGENT_ADDRESS"
+[ -z "$TACACS_SECURE_KEY" ] || APPARGS="$APPARGS --tacacs_secure_key $TACACS_SECURE_KEY"
+[ -z "$TACACS_FALLBACK_PASS" ] || APPARGS="$APPARGS --tacacs_fallback_pass $TACACS_FALLBACK_PASS"
+[ -z "$INTERFACE_ADDRESS" ] || APPARGS="$APPARGS --interface_address $INTERFACE_ADDRESS"
+[ -z "$OPENOLT_AGENT_ADDRESS" ] || APPARGS="$APPARGS --openolt_agent_address $OPENOLT_AGENT_ADDRESS"
 
 # Include functions
 set -e
@@ -33,7 +33,7 @@ set -e
 start() {
   printf "Starting '$NAME'... "
   export USER=$USER
-  start-stop-daemon --verbose --start --chuid "$USER:$GROUP" --background --no-close --make-pidfile --pidfile /var/run/$NAME.pid chdir "$APPDIR" --exec "$APPBIN" -- $APPARGS < /dev/tty1 >> /var/log/$NAME.log 2>&1 || true
+  start-stop-daemon --verbose --start --chuid "$USER:$GROUP" --background --no-close --make-pidfile --pidfile /var/run/$NAME.pid --exec "$APPDIR/$APPBIN" -- $APPARGS < /dev/tty1 >> /var/log/$NAME.log 2>&1 || true
   printf "done\n"
 }
 

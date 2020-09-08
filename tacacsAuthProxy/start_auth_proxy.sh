@@ -8,9 +8,9 @@ INTERFACE_ADDRESS=127.0.0.1:19191
 OPENOLT_AGENT_ADDRESS=127.0.0.1:9191
 
 [ -z "$TACACS_SERVER_ADDRESS" ] || APPARGS="--tacacs_server_address $TACACS_SERVER_ADDRESS"
-[ -z "$TACACS_SECURE_KEY" ] || APPARGS+=" --tacacs_secure_key $TACACS_SECURE_KEY"
-[ -z "$TACACS_FALLBACK_PASS" ] || APPARGS+=" --tacacs_fallback_pass $TACACS_FALLBACK_PASS"
-[ -z "$INTERFACE_ADDRESS" ] || APPARGS+=" --interface_address $INTERFACE_ADDRESS"
-[ -z "$OPENOLT_AGENT_ADDRESS" ] || APPARGS+=" --openolt_agent_address $OPENOLT_AGENT_ADDRESS"
+[ -z "$TACACS_SECURE_KEY" ] || APPARGS="$APPARGS --tacacs_secure_key $TACACS_SECURE_KEY"
+[ -z "$TACACS_FALLBACK_PASS" ] || APPARGS="$APPARGS --tacacs_fallback_pass $TACACS_FALLBACK_PASS"
+[ -z "$INTERFACE_ADDRESS" ] || APPARGS="$APPARGS --interface_address $INTERFACE_ADDRESS"
+[ -z "$OPENOLT_AGENT_ADDRESS" ] || APPARGS="$APPARGS --openolt_agent_address $OPENOLT_AGENT_ADDRESS"
 
 $SCRIPTDIR/build/tacacsproxy $APPARGS $@

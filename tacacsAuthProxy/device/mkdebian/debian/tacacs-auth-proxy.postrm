@@ -16,6 +16,7 @@
 
 
 rm -rf /usr/local/bin/tacacsproxy
+rm -rf /usr/local/lib/libprotobuf.so.22
 rm -rf /usr/local/lib/libgrpc++.so.1
 rm -rf /usr/local/lib/libgrpc.so.9
 rm -rf /usr/local/lib/libgpr.so.9
