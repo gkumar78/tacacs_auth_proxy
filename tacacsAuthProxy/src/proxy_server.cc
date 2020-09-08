@@ -44,16 +44,13 @@ static inline bool is_base64(unsigned char c) {
 }
 std::string base64_decode(std::string const& encoded_string);
 
-class ProxyServiceImpl final : public openolt::Openolt::Service  { // add client interface and change class name
+class ProxyServiceImpl final : public openolt::Openolt::Service  {
    
    TaccController *taccController;
    ProxyClient *proxyClient;
 	
     Status processTacacsAuth(ServerContext* context, string methodName) {
-        // Is TACACS enabled, if not proceed to client invocation
-        // Extract Auth Credentials
-        // Call TACACS_Server class to authenticate
-        // If not authenticated,
+        LOG_F(INFO, "processTacacsAuth");
         const std::multimap<grpc::string_ref, grpc::string_ref> metadata = context->client_metadata();
         std::multimap<grpc::string_ref, grpc::string_ref>::const_iterator data_iter = metadata.find("authorization");
 
@@ -64,8 +61,13 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  { // add client
                 int pos = decoded_str.find(":");
                 std::string username = decoded_str.substr(0,pos);
                 std::string password = decoded_str.substr(pos+1);
-                LOG_F(INFO, "Received gRPC credentials. username=%s, password=%s", username, password);
-                return taccController->Authenticate(username.c_str(), password.c_str());
+                LOG_F(INFO, "Received gRPC credentials. username=%s, password=%s", username.c_str(), password.c_str());
+                //return taccController->Authenticate(username.c_str(), password.c_str());
+		const Status ret =  taccController->Authenticate(username.c_str(), password.c_str());
+		if (ret.error_code() == StatusCode::OK) {
+                    LOG_F(INFO, "Calling Authorize");
+		    return taccController->Authorize(username.c_str(), methodName);
+		}
         } else {
 	    	return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
         }
@@ -76,12 +78,14 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  { // add client
             ServerContext* context,
             const openolt::Empty* request,
             openolt::Empty* response) override {
-		const Status authResult = processTacacsAuth(context, "DisableOlt");
+                LOG_F(INFO, "DisableOlt");
+		const Status authResult = processTacacsAuth(context, "disableolt");
                 if( authResult.error_code() != StatusCode::OK ) {
                         return authResult;
                 }
 
 		grpc::ClientContext ctx;
+                LOG_F(INFO, "Calling proxyClient to disableOLT");
 		return proxyClient->DisableOlt(&ctx, request, response);
     }
 
