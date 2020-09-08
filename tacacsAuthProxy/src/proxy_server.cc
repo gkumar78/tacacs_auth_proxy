@@ -99,6 +99,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                     LOG_F(INFO, "Calling Authorize");
 		    return taccController->Authorize(username.c_str(), methodName);
 		}
+		return Status(grpc::UNAUTHENTICATED,"Unable to authenticate");
         } else {
 	    	return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
         }
