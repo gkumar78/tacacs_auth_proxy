@@ -44,6 +44,9 @@ static const std::string base64_chars =
 static inline bool is_base64(unsigned char c) {
         return (isalnum(c) || (c == '+') || (c == '/'));
 }
+
+static Server* ServerInstance;
+
 std::string base64_decode(std::string const& encoded_string);
 
 class ProxyClient {
@@ -180,6 +183,8 @@ void RunServer(int argc, char** argv) {
   TaccController* taccController = NULL;
   ProxyClient* client = NULL; 
 
+  LOG_F(INFO, "Starting up TACACS Proxy");
+
   //change this address and make the required changes for sub interface
   for (int i = 1; i < argc; ++i) {
         if(strcmp(argv[i-1], "--tacacs_server_address") == 0 ) {
@@ -243,5 +248,17 @@ void RunServer(int argc, char** argv) {
   std::unique_ptr<Server> server(builder.BuildAndStart());
   //std::cout << "Server listening on " << server_address << std::endl;
 
+  ServerInstance = server.get();
   server->Wait();
+}
+
+void StopServer(int signum) {
+  LOG_F(INFO, "Received Signal %d", signum);
+
+  if( ServerInstance != NULL ) {
+    LOG_F(INFO, "Shutting down TACACS Proxy");
+    ServerInstance->Shutdown();
+  }
+
+  exit(0);
 }
