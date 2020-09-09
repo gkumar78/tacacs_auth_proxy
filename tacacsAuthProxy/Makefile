@@ -97,8 +97,8 @@ $(protoc-bin):
 	make -C $(PROTOBUF_DST)
 	sudo make -C $(PROTOBUF_DST) install
 	# Need to create symlink for grpc
-	sudo ln -sf /usr/local/lib/libprotobuf.so.22 /usr/lib/libprotobuf.so.22
-	sudo ln -sf /usr/local/lib/libprotoc.so.22 /usr/lib/libprotoc.so.22
+	sudo ln -sf /usr/local/lib/libprotobuf.so.15 /usr/lib/libprotobuf.so.15
+	sudo ln -sf /usr/local/lib/libprotoc.so.15 /usr/lib/libprotoc.so.15
 
 $(tacc-bin):
 	# Install libtac
@@ -136,6 +136,7 @@ protos:
 	make -C $(OPENOLT_PROTOS_DIR) all
 protos-clean:
 	make -C $(OPENOLT_PROTOS_DIR) clean
+	rm -rf $(OPENOLT_PROTOS_DIR)/googleapis
 
 ########################################################################
 ##
@@ -197,7 +198,6 @@ clean:
 
 clean-src: protos-clean
 	rm -f $(OBJS) $(DEPS)
-	rm -rf $(OPENOLT_PROTOS_DIR)/googleapis
 
 distclean: clean-src clean prereqs-local-clean
 	rm -rf $(BUILD_DIR)
