@@ -12,6 +12,7 @@
  */
 
 #include <iostream>
+#include <csignal>
 #include "logger.h"
 #include "proxy_server.h"
 
@@ -20,6 +21,10 @@ using namespace std;
 int main(int argc, char** argv) {
 
     loguru::init(argc, argv);
+
+    signal(SIGINT, StopServer);
+    signal(SIGQUIT, StopServer);
+    signal(SIGTERM, StopServer);
 
     RunServer(argc, argv);
 

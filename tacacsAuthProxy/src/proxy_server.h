@@ -14,3 +14,4 @@
 #include <stdio.h>
 
 void RunServer(int argc, char** argv);
+void StopServer(int signum);
