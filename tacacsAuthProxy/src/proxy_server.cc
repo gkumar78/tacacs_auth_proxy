@@ -56,12 +56,10 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
 
     public:
     Status processTacacsAuth(ServerContext* context, string methodName) {
-        // Is TACACS enabled, if not proceed to client invocation
-        // Extract Auth Credentials
-        // Call TACACS_Server class to authenticate
-        // If not authenticated,
         LOG_F(INFO, "processTacacsAuth");
         if(context){
+
+	LOG_F(INFO, "Extracting the gRPC credentials");
         const std::multimap<grpc::string_ref, grpc::string_ref> metadata = context->client_metadata();
         std::multimap<grpc::string_ref, grpc::string_ref>::const_iterator data_iter = metadata.find("authorization");
 
@@ -70,14 +68,26 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 std::string str_withoutBasic = str_withBasic.substr(6);
                 std::string decoded_str = base64_decode(str_withoutBasic);
                 int pos = decoded_str.find(":");
-                std::string username = decoded_str.substr(0,pos);
+                username = decoded_str.substr(0,pos);
                 std::string password = decoded_str.substr(pos+1);
                 LOG_F(INFO, "Received gRPC credentials. username=%s, password=%s", username.c_str(), password.c_str());
-                //return taccController->Authenticate(username.c_str(), password.c_str());
+
+                int task_id_acc = taccController->StartAccounting(username.c_str(), methodName);
 		const Status ret =  taccController->Authenticate(username.c_str(), password.c_str());
+                string error_msg;
+                if(ret.error_code() != StatusCode::OK) {
+                    error_msg = ret.error_message();
+                } else {
+                    error_msg = "no error";
+                }
+                taccController->StopAccounting(username.c_str(), task_id_acc, methodName, error_msg);
+
 		if (ret.error_code() == StatusCode::OK) {
                     LOG_F(INFO, "Calling Authorize");
-		    return taccController->Authorize(username.c_str(), methodName);
+                    //int task_id = taccController->StartAccounting(username.c_str(), methodName);
+		    Status status =  taccController->Authorize(username.c_str(), methodName);
+                    //taccController->StopAccounting(username.c_str(), task_id, status.error_message(),  methodName);
+		    return status;
 		}
 		return Status(grpc::UNAUTHENTICATED,"Unable to authenticate");
         } else {
@@ -93,13 +103,29 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             const openolt::Empty* request,
             openolt::Empty* response) override {
                 LOG_F(INFO, "DisableOlt");
-		const Status authResult = processTacacsAuth(context, "disableolt");
-                if( authResult.error_code() != StatusCode::OK ) {
-                        return authResult;
-                }
-		ClientContext ctx;		
-		return openoltClientStub->DisableOlt(&ctx, *request, response);
 
+	        if (taccController->IsTacacsEnabled()) {
+	            const Status authResult = processTacacsAuth(context, "disableolt");
+                    if(authResult.error_code() != StatusCode::OK ) {
+                        return authResult;
+                    }	
+		    grpc::ClientContext ctx;
+                    int task_id = taccController->StartAccounting(username.c_str(), "disableolt");
+                    LOG_F(INFO, "Calling proxyClient to disableOLT");
+		    Status status  = proxyClient->DisableOlt(&ctx, request, response);
+ 
+	            string error_msg;
+		    if(status.error_code() != StatusCode::OK) {
+		        error_msg = status.error_message();
+                    } else {
+			error_msg = "no error";
+		    }
+                    taccController->StopAccounting(username.c_str(), task_id, "disableolt", error_msg);
+		    return status;
+		} else {
+                    ClientContext ctx;
+                    return openoltClientStub->DisableOlt(&ctx, *request, response);
+		}
     }
 
     ProxyServiceImpl(TaccController* tacctrl, const char* addr) {

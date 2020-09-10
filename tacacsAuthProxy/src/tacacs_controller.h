@@ -39,8 +39,9 @@ class TaccController {
   public:
     TaccController(const char* server_address, const char* secure_key, bool fallback_pass);
 
+    bool IsTacacsEnabled();
     Status Authenticate(const char* user, const char* pass);
     Status Authorize(const char* user, string methodName);
     int StartAccounting(const char* user, string methodName);
-    void StopAccounting(const char* user, int task_id, string methodName);
+    void StopAccounting(const char* user, int task_id, string methodName, string err_msg);
 };
