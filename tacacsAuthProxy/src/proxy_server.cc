@@ -52,6 +52,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
    
     TaccController *taccController;
     const char* openolt_agent_address;
+    unique_ptr<openolt::Openolt::Stub> openoltClientStub;
 
     public:
     Status processTacacsAuth(ServerContext* context, string methodName) {
@@ -97,15 +98,16 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                         return authResult;
                 }
 		ClientContext ctx;		
-  		LOG_F(INFO, "Creating GRPC Channel");
-       		unique_ptr<openolt::Openolt::Stub> stub_ = openolt::Openolt::NewStub(grpc::CreateChannel(openolt_agent_address, grpc::InsecureChannelCredentials()));
-		return stub_->DisableOlt(&ctx, *request, response);
+		return openoltClientStub->DisableOlt(&ctx, *request, response);
 
     }
 
     ProxyServiceImpl(TaccController* tacctrl, const char* addr) {
             taccController = tacctrl;
             openolt_agent_address = addr;
+
+            LOG_F(INFO, "Creating GRPC Channel to Openolt Agent on %s", openolt_agent_address);
+            openoltClientStub = openolt::Openolt::NewStub(grpc::CreateChannel(openolt_agent_address, grpc::InsecureChannelCredentials()));
     }
     
 };
@@ -159,9 +161,8 @@ void RunServer(int argc, char** argv) {
   const char* openolt_agent_address = NULL;
   TaccController* taccController = NULL;
 
-   LOG_F(INFO, "Starting up TACACS Proxy");
+  LOG_F(INFO, "Starting up TACACS Proxy");
 
-  //change this address and make the required changes for sub interface
   for (int i = 1; i < argc; ++i) {
         if(strcmp(argv[i-1], "--tacacs_server_address") == 0 ) {
             tacacs_server_address = argv[i];
@@ -176,53 +177,47 @@ void RunServer(int argc, char** argv) {
         }
     }
    
-  //if(!tacacs_server_address){
-//	LOG_F(INFO, "TACACS+ client disabled");
- // 	return;
-  //}
+  if(!interface_address || interface_address == ""){
+        LOG_F(ERROR, "Server Interface Bind address is missing. TACACS Proxy startup failed");
+	return; 
+  }
+
+  if(!openolt_agent_address || openolt_agent_address == ""){
+        LOG_F(ERROR, "Openolt Agent address is missing. TACACS Proxy startup failed");
+	return;
+  }
 
   if(!tacacs_server_address || tacacs_server_address == ""){
-        LOG_F(INFO, "TACACS+ client is not enabled. Hence cannot perform AAA");
+        LOG_F(INFO, "TACACS+ Server address is missing. TACACS+ AAA will be disabled");
   }
 
-  if(!tacacs_fallback_pass){   
-	LOG_F(ERROR, "Input argument tacacs_fallback_pass received false");
-  }
+  LOG_F(INFO, "TACACS+ Server configured as %s", tacacs_server_address);
+
+  LOG_F(INFO, "TACACS Fallback configured as %s", tacacs_fallback_pass ? "PASS": "FAIL");
   
   if(!tacacs_secure_key){
-        LOG_F(ERROR, "tacacs_secure_key used for encrypting the payload of tacacs messages is missing ");
+        LOG_F(ERROR, "TACACS Secure Key is missing. No encryption will be used for TACACS channel");
+        tacacs_secure_key = "";
   }
 
   LOG_F(INFO, "Creating TaccController");
   taccController = new TaccController(tacacs_server_address, tacacs_secure_key, tacacs_fallback_pass);
-  LOG_F(INFO, "Created TaccController");
   
-  if(!openolt_agent_address){
-	LOG_F(ERROR, "Openolt agent server address missing");
-        return;
-  }
   LOG_F(INFO, "Creating Proxy Server");
   ProxyServiceImpl service(taccController, openolt_agent_address);
-  LOG_F(INFO, "Created Proxy Server");  
 
   grpc::EnableDefaultHealthCheckService(true);
-  //grpc::reflection::InitProtoReflectionServerBuilderPlugin();
   ServerBuilder builder;
 
   LOG_F(INFO, "Starting Proxy Server");
-  if(interface_address)
   builder.AddListeningPort(interface_address, grpc::InsecureServerCredentials());
-  else
-  {
-  	LOG_F(ERROR, "Interface address for proxy server missing");
-	return;
-  }
   builder.RegisterService(&service);
 
   std::unique_ptr<Server> server(builder.BuildAndStart());
-  //std::cout << "Server listening on " << server_address << std::endl;
 
   ServerInstance = server.get();
+
+  LOG_F(INFO, "TACACS Proxy listening on %s", interface_address);
   server->Wait();
 }
 
