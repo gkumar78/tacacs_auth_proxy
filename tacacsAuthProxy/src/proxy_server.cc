@@ -23,7 +23,6 @@
 #include <voltha_protos/tech_profile.grpc.pb.h>
 
 #include "tacacs_controller.h"
-//#include "proxy_client.h"
 #include "logger.h"
 
 using grpc::Channel;
@@ -49,33 +48,10 @@ static Server* ServerInstance;
 
 std::string base64_decode(std::string const& encoded_string);
 
-class ProxyClient {
-
- public:
-
-  ProxyClient(std::shared_ptr<Channel> channel)
-      : stub_(openolt::Openolt::NewStub(channel)) {}
-
-
-  // Assembles the client's payload, sends it and presents the response back
-  // from the server.
-    Status DisableOlt(ClientContext* context,
-            const openolt::Empty* request,
-            openolt::Empty* response) {
-
-    // The actual RPC.
-    return stub_->DisableOlt(context, *request, response);
-
-    }
-
- private:
-  std::unique_ptr<openolt::Openolt::Stub> stub_;
-};
-
 class ProxyServiceImpl final : public openolt::Openolt::Service  {
    
     TaccController *taccController;
-    ProxyClient *proxyClient;
+    const char* openolt_agent_address;
 
     public:
     Status processTacacsAuth(ServerContext* context, string methodName) {
@@ -120,15 +96,15 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 if( authResult.error_code() != StatusCode::OK ) {
                         return authResult;
                 }
-
-		grpc::ClientContext ctx;
-                LOG_F(INFO, "Calling proxyClient to disableOLT");
-		return proxyClient->DisableOlt(&ctx, request, response);
+		ClientContext ctx;		
+  		LOG_F(INFO, "Creating GRPC Channel");
+       		unique_ptr<openolt::Openolt::Stub> stub_ = openolt::Openolt::NewStub(grpc::CreateChannel(openolt_agent_address, grpc::InsecureChannelCredentials()));
+		return stub_->DisableOlt(&ctx, *request, response);
     }
 
-    ProxyServiceImpl(TaccController* tacctrl, ProxyClient* client) {
+    ProxyServiceImpl(TaccController* tacctrl, const char* addr) {
             taccController = tacctrl;
-            proxyClient = client;
+            openolt_agent_address = addr;
     }
     
 };
@@ -181,7 +157,6 @@ void RunServer(int argc, char** argv) {
   const char* interface_address = NULL;
   const char* openolt_agent_address = NULL;
   TaccController* taccController = NULL;
-  ProxyClient* client = NULL; 
 
   LOG_F(INFO, "Starting up TACACS Proxy");
 
@@ -199,41 +174,35 @@ void RunServer(int argc, char** argv) {
             openolt_agent_address = argv[i];
         }
     }
+   
+  //if(!tacacs_server_address){
+//	LOG_F(INFO, "TACACS+ client disabled");
+ // 	return;
+  //}
 
-  //const char* server_address(interface_address);
-  if(!tacacs_server_address){
-	LOG_F(INFO, "TACACS+ client disabled");
-  	return;
+  if(!tacacs_server_address || tacacs_server_address == ""){
+        LOG_F(INFO, "TACACS+ client is not enabled. Hence cannot perform AAA");
   }
+
   if(!tacacs_fallback_pass){   
-	LOG_F(INFO, "Error communicating with TACACS+ server");
+	LOG_F(ERROR, "Input argument tacacs_fallback_pass received false");
+  }
+  
+  if(!tacacs_secure_key){
+        LOG_F(ERROR, "tacacs_secure_key used for encrypting the payload of tacacs messages is missing ");
+  }
+
+  LOG_F(INFO, "Creating TaccController");
+  taccController = new TaccController(tacacs_server_address, tacacs_secure_key, tacacs_fallback_pass);
+  LOG_F(INFO, "Created TaccController");
+  
+  if(!openolt_agent_address){
+	LOG_F(ERROR, "Openolt agent server address missing");
         return;
   }
-
-  LOG_F(INFO, "Create TaccController");
-  if(tacacs_server_address && tacacs_secure_key){	
-  	taccController = new TaccController(tacacs_server_address, tacacs_secure_key, tacacs_fallback_pass);
-	LOG_F(INFO, "Created TaccController");
-  } else {
-	LOG_F(INFO, "Cannot create TaccController");
-	return;
-  }
-
-  if(openolt_agent_address){
-  	LOG_F(INFO, "Creating GRPC Channel");
-	std::shared_ptr<Channel> channel = grpc::CreateChannel(openolt_agent_address, grpc::InsecureChannelCredentials());
-  	LOG_F(INFO, "Creating GRPC Client");
-  	client = new ProxyClient(channel);
-  } else {
-	LOG_F(INFO, "Cannot connect with OLT agent");
-	return;
-  }
-
-  
   LOG_F(INFO, "Creating Proxy Server");
-  ProxyServiceImpl service(taccController, client);
-  LOG_F(INFO, "Created Proxy Server");
-  
+  ProxyServiceImpl service(taccController, openolt_agent_address);
+  LOG_F(INFO, "Created Proxy Server");  
 
   grpc::EnableDefaultHealthCheckService(true);
   //grpc::reflection::InitProtoReflectionServerBuilderPlugin();
@@ -242,7 +211,11 @@ void RunServer(int argc, char** argv) {
   LOG_F(INFO, "Starting Proxy Server");
   if(interface_address)
   builder.AddListeningPort(interface_address, grpc::InsecureServerCredentials());
-
+  else
+  {
+  	LOG_F(ERROR, "Interface address for proxy server missing");
+	return;
+  }
   builder.RegisterService(&service);
 
   std::unique_ptr<Server> server(builder.BuildAndStart());
