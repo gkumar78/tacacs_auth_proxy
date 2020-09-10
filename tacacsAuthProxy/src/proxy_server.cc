@@ -100,6 +100,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
   		LOG_F(INFO, "Creating GRPC Channel");
        		unique_ptr<openolt::Openolt::Stub> stub_ = openolt::Openolt::NewStub(grpc::CreateChannel(openolt_agent_address, grpc::InsecureChannelCredentials()));
 		return stub_->DisableOlt(&ctx, *request, response);
+
     }
 
     ProxyServiceImpl(TaccController* tacctrl, const char* addr) {
@@ -158,7 +159,7 @@ void RunServer(int argc, char** argv) {
   const char* openolt_agent_address = NULL;
   TaccController* taccController = NULL;
 
-  LOG_F(INFO, "Starting up TACACS Proxy");
+   LOG_F(INFO, "Starting up TACACS Proxy");
 
   //change this address and make the required changes for sub interface
   for (int i = 1; i < argc; ++i) {
