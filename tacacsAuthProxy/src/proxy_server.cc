@@ -51,8 +51,8 @@ std::string base64_decode(std::string const& encoded_string);
 class ProxyServiceImpl final : public openolt::Openolt::Service  {
    
     TaccController *taccController;
-    const char* openolt_agent_address;
     unique_ptr<openolt::Openolt::Stub> openoltClientStub;
+    std::string username;
 
     public:
     Status processTacacsAuth(ServerContext* context, string methodName) {
@@ -112,7 +112,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
 		    grpc::ClientContext ctx;
                     int task_id = taccController->StartAccounting(username.c_str(), "disableolt");
                     LOG_F(INFO, "Calling proxyClient to disableOLT");
-		    Status status  = proxyClient->DisableOlt(&ctx, request, response);
+		    Status status  = openoltClientStub->DisableOlt(&ctx, *request, response);
  
 	            string error_msg;
 		    if(status.error_code() != StatusCode::OK) {
@@ -130,10 +130,9 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
 
     ProxyServiceImpl(TaccController* tacctrl, const char* addr) {
             taccController = tacctrl;
-            openolt_agent_address = addr;
 
-            LOG_F(INFO, "Creating GRPC Channel to Openolt Agent on %s", openolt_agent_address);
-            openoltClientStub = openolt::Openolt::NewStub(grpc::CreateChannel(openolt_agent_address, grpc::InsecureChannelCredentials()));
+            LOG_F(INFO, "Creating GRPC Channel to Openolt Agent on %s", addr);
+            openoltClientStub = openolt::Openolt::NewStub(grpc::CreateChannel(addr, grpc::InsecureChannelCredentials()));
     }
     
 };
