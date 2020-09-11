@@ -21,6 +21,7 @@
 
 #include <voltha_protos/openolt.grpc.pb.h>
 #include <voltha_protos/tech_profile.grpc.pb.h>
+//#include <voltha_protos/ext_config.grpc.pb.h>
 
 #include "tacacs_controller.h"
 #include "logger.h"
@@ -30,6 +31,7 @@ using grpc::ChannelArguments;
 using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
+using grpc::ServerWriter;
 using grpc::Status;
 using grpc::ClientContext;
 
@@ -71,6 +73,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             tacCtx.remote_addr = context->peer();
             LOG_F(INFO, "Received gRPC credentials username=%s, password=%s from Remote %s", tacCtx.username.c_str(), tacCtx.password.c_str(), tacCtx.remote_addr.c_str());
         } else {
+            LOG_F(INFO, "Unable to find or extract credentials from incoming gRPC request");
             tacCtx.username = "";
         }
 
@@ -107,7 +110,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             Status status = processTacacsAuth(&tacCtx);
             if(status.error_code() == StatusCode::OK) {
                 ClientContext ctx;
-                LOG_F(INFO, "Calling disableOLT");
+                LOG_F(INFO, "Calling DisableOlt");
                 status = openoltClientStub->DisableOlt(&ctx, *request, response);
             }
             if(status.error_code() != StatusCode::OK) {
@@ -117,11 +120,10 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             return status;
         } else {
             ClientContext ctx;
-            LOG_F(INFO, "Tacacs disabled.. Calling disableOLT");
+            LOG_F(INFO, "Tacacs disabled.. Calling DisableOlt");
             return openoltClientStub->DisableOlt(&ctx, *request, response);
         }
     }
-
 
     Status ReenableOlt(
             ServerContext* context,
@@ -158,6 +160,285 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
         }
     }
 
+    Status ActivateOnu(
+            ServerContext* context,
+            const openolt::Onu* request,
+            openolt::Empty* response) override {
+        LOG_F(INFO, "ActivateOnu invoked");
+
+        if (taccController->IsTacacsEnabled()) {
+            TacacsContext tacCtx = extractDataFromGrpc(context);
+            if (tacCtx.username.empty()) {
+                return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
+            }
+
+            tacCtx.method_name = "activateonu";
+            string error_msg = "no error";
+            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
+            taccController->StartAccounting(&tacCtx);
+
+            Status status = processTacacsAuth(&tacCtx);
+            if(status.error_code() == StatusCode::OK) {
+                ClientContext ctx;
+                LOG_F(INFO, "Calling ActivateOnu");
+                status = openoltClientStub->ActivateOnu(&ctx, *request, response);
+            }
+            if(status.error_code() != StatusCode::OK) {
+                error_msg = status.error_message();
+            }
+            taccController->StopAccounting(&tacCtx, error_msg);
+            return status;
+        } else {
+            ClientContext ctx;
+            LOG_F(INFO, "Tacacs disabled.. Calling ActivateOnu");
+            return openoltClientStub->ActivateOnu(&ctx, *request, response);
+        }
+    }
+
+    Status DeactivateOnu(
+            ServerContext* context,
+            const openolt::Onu* request,
+            openolt::Empty* response) override {
+        LOG_F(INFO, "DeactivateOnu invoked");
+
+        if (taccController->IsTacacsEnabled()) {
+            TacacsContext tacCtx = extractDataFromGrpc(context);
+            if (tacCtx.username.empty()) {
+                return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
+            }
+
+            tacCtx.method_name = "deactivateonu";
+            string error_msg = "no error";
+            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
+            taccController->StartAccounting(&tacCtx);
+
+            Status status = processTacacsAuth(&tacCtx);
+            if(status.error_code() == StatusCode::OK) {
+                ClientContext ctx;
+                LOG_F(INFO, "Calling DeactivateOnu");
+                status = openoltClientStub->DeactivateOnu(&ctx, *request, response);
+            }
+            if(status.error_code() != StatusCode::OK) {
+                error_msg = status.error_message();
+            }
+            taccController->StopAccounting(&tacCtx, error_msg);
+            return status;
+        } else {
+            ClientContext ctx;
+            LOG_F(INFO, "Tacacs disabled.. Calling DeactivateOnu");
+            return openoltClientStub->DeactivateOnu(&ctx, *request, response);
+        }
+    }
+
+    Status DeleteOnu(
+            ServerContext* context,
+            const openolt::Onu* request,
+            openolt::Empty* response) override {
+        LOG_F(INFO, "DeleteOnu invoked");
+
+        if (taccController->IsTacacsEnabled()) {
+            TacacsContext tacCtx = extractDataFromGrpc(context);
+            if (tacCtx.username.empty()) {
+                return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
+            }
+
+            tacCtx.method_name = "deleteonu";
+            string error_msg = "no error";
+            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
+            taccController->StartAccounting(&tacCtx);
+
+            Status status = processTacacsAuth(&tacCtx);
+            if(status.error_code() == StatusCode::OK) {
+                ClientContext ctx;
+                LOG_F(INFO, "Calling DeleteOnu");
+                status = openoltClientStub->DeleteOnu(&ctx, *request, response);
+            }
+            if(status.error_code() != StatusCode::OK) {
+                error_msg = status.error_message();
+            }
+            taccController->StopAccounting(&tacCtx, error_msg);
+            return status;
+        } else {
+            ClientContext ctx;
+            LOG_F(INFO, "Tacacs disabled.. Calling DeleteOnu");
+            return openoltClientStub->DeleteOnu(&ctx, *request, response);
+        }
+    }
+
+    Status OmciMsgOut(
+            ServerContext* context,
+            const openolt::OmciMsg* request,
+            openolt::Empty* response) override {
+        LOG_F(INFO, "OmciMsgOut invoked");
+
+        if (taccController->IsTacacsEnabled()) {
+            TacacsContext tacCtx = extractDataFromGrpc(context);
+            if (tacCtx.username.empty()) {
+                return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
+            }
+
+            tacCtx.method_name = "omcimsgout";
+            string error_msg = "no error";
+            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
+            taccController->StartAccounting(&tacCtx);
+
+            Status status = processTacacsAuth(&tacCtx);
+            if(status.error_code() == StatusCode::OK) {
+                ClientContext ctx;
+                LOG_F(INFO, "Calling OmciMsgOut");
+                status = openoltClientStub->OmciMsgOut(&ctx, *request, response);
+            }
+            if(status.error_code() != StatusCode::OK) {
+                error_msg = status.error_message();
+            }
+            taccController->StopAccounting(&tacCtx, error_msg);
+            return status;
+        } else {
+            ClientContext ctx;
+            LOG_F(INFO, "Tacacs disabled.. Calling OmciMsgOut");
+            return openoltClientStub->OmciMsgOut(&ctx, *request, response);
+        }
+    }
+
+    Status OnuPacketOut(
+            ServerContext* context,
+            const openolt::OnuPacket* request,
+            openolt::Empty* response) override {
+        LOG_F(INFO, "OnuPacketOut invoked");
+
+        if (taccController->IsTacacsEnabled()) {
+            TacacsContext tacCtx = extractDataFromGrpc(context);
+            if (tacCtx.username.empty()) {
+                return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
+            }
+
+            tacCtx.method_name = "onupacketout";
+            string error_msg = "no error";
+            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
+            taccController->StartAccounting(&tacCtx);
+
+            Status status = processTacacsAuth(&tacCtx);
+            if(status.error_code() == StatusCode::OK) {
+                ClientContext ctx;
+                LOG_F(INFO, "Calling OnuPacketOut");
+                status = openoltClientStub->OnuPacketOut(&ctx, *request, response);
+            }
+            if(status.error_code() != StatusCode::OK) {
+                error_msg = status.error_message();
+            }
+            taccController->StopAccounting(&tacCtx, error_msg);
+            return status;
+        } else {
+            ClientContext ctx;
+            LOG_F(INFO, "Tacacs disabled.. Calling OnuPacketOut");
+            return openoltClientStub->OnuPacketOut(&ctx, *request, response);
+        }
+    }
+
+    Status UplinkPacketOut(
+            ServerContext* context,
+            const openolt::UplinkPacket* request,
+            openolt::Empty* response) override {
+        LOG_F(INFO, "UplinkPacketOut invoked");
+
+        if (taccController->IsTacacsEnabled()) {
+            TacacsContext tacCtx = extractDataFromGrpc(context);
+            if (tacCtx.username.empty()) {
+                return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
+            }
+
+            tacCtx.method_name = "uplinkpacketout";
+            string error_msg = "no error";
+            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
+            taccController->StartAccounting(&tacCtx);
+
+            Status status = processTacacsAuth(&tacCtx);
+            if(status.error_code() == StatusCode::OK) {
+                ClientContext ctx;
+                LOG_F(INFO, "Calling UplinkPacketOut");
+                status = openoltClientStub->UplinkPacketOut(&ctx, *request, response);
+            }
+            if(status.error_code() != StatusCode::OK) {
+                error_msg = status.error_message();
+            }
+            taccController->StopAccounting(&tacCtx, error_msg);
+            return status;
+        } else {
+            ClientContext ctx;
+            LOG_F(INFO, "Tacacs disabled.. Calling UplinkPacketOut");
+            return openoltClientStub->UplinkPacketOut(&ctx, *request, response);
+        }
+    }
+
+    Status FlowAdd(
+            ServerContext* context,
+            const openolt::Flow* request,
+            openolt::Empty* response) override {
+        LOG_F(INFO, "FlowAdd invoked");
+
+        if (taccController->IsTacacsEnabled()) {
+            TacacsContext tacCtx = extractDataFromGrpc(context);
+            if (tacCtx.username.empty()) {
+                return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
+            }
+
+            tacCtx.method_name = "flowadd";
+            string error_msg = "no error";
+            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
+            taccController->StartAccounting(&tacCtx);
+
+            Status status = processTacacsAuth(&tacCtx);
+            if(status.error_code() == StatusCode::OK) {
+                ClientContext ctx;
+                LOG_F(INFO, "Calling FlowAdd");
+                status = openoltClientStub->FlowAdd(&ctx, *request, response);
+            }
+            if(status.error_code() != StatusCode::OK) {
+                error_msg = status.error_message();
+            }
+            taccController->StopAccounting(&tacCtx, error_msg);
+            return status;
+        } else {
+            ClientContext ctx;
+            LOG_F(INFO, "Tacacs disabled.. Calling FlowAdd");
+            return openoltClientStub->FlowAdd(&ctx, *request, response);
+        }
+    }
+
+    Status FlowRemove(
+            ServerContext* context,
+            const openolt::Flow* request,
+            openolt::Empty* response) override {
+        LOG_F(INFO, "FlowRemove invoked");
+
+        if (taccController->IsTacacsEnabled()) {
+            TacacsContext tacCtx = extractDataFromGrpc(context);
+            if (tacCtx.username.empty()) {
+                return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
+            }
+
+            tacCtx.method_name = "flowremove";
+            string error_msg = "no error";
+            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
+            taccController->StartAccounting(&tacCtx);
+
+            Status status = processTacacsAuth(&tacCtx);
+            if(status.error_code() == StatusCode::OK) {
+                ClientContext ctx;
+                LOG_F(INFO, "Calling FlowRemove");
+                status = openoltClientStub->FlowRemove(&ctx, *request, response);
+            }
+            if(status.error_code() != StatusCode::OK) {
+                error_msg = status.error_message();
+            }
+            taccController->StopAccounting(&tacCtx, error_msg);
+            return status;
+        } else {
+            ClientContext ctx;
+            LOG_F(INFO, "Tacacs disabled.. Calling FlowRemove");
+            return openoltClientStub->FlowRemove(&ctx, *request, response);
+        }
+    }
 
     Status HeartbeatCheck(
             ServerContext* context,
@@ -191,6 +472,181 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             ClientContext ctx;
             LOG_F(INFO, "Tacacs disabled.. Calling HeartbeatCheck");
             return openoltClientStub->HeartbeatCheck(&ctx, *request, response);
+        }
+    }
+
+    Status EnablePonIf(
+            ServerContext* context,
+            const openolt::Interface* request,
+            openolt::Empty* response) override {
+        LOG_F(INFO, "EnablePonIf invoked");
+
+        if (taccController->IsTacacsEnabled()) {
+            TacacsContext tacCtx = extractDataFromGrpc(context);
+            if (tacCtx.username.empty()) {
+                return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
+            }
+
+            tacCtx.method_name = "enableponif";
+            string error_msg = "no error";
+            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
+            taccController->StartAccounting(&tacCtx);
+
+            Status status = processTacacsAuth(&tacCtx);
+            if(status.error_code() == StatusCode::OK) {
+                ClientContext ctx;
+                LOG_F(INFO, "Calling EnablePonIf");
+                status = openoltClientStub->EnablePonIf(&ctx, *request, response);
+            }
+            if(status.error_code() != StatusCode::OK) {
+                error_msg = status.error_message();
+            }
+            taccController->StopAccounting(&tacCtx, error_msg);
+            return status;
+        } else {
+            ClientContext ctx;
+            LOG_F(INFO, "Tacacs disabled.. Calling EnablePonIf");
+            return openoltClientStub->EnablePonIf(&ctx, *request, response);
+        }
+    }
+
+    Status DisablePonIf(
+            ServerContext* context,
+            const openolt::Interface* request,
+            openolt::Empty* response) override {
+        LOG_F(INFO, "DisablePonIf invoked");
+
+        if (taccController->IsTacacsEnabled()) {
+            TacacsContext tacCtx = extractDataFromGrpc(context);
+            if (tacCtx.username.empty()) {
+                return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
+            }
+
+            tacCtx.method_name = "disableponif";
+            string error_msg = "no error";
+            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
+            taccController->StartAccounting(&tacCtx);
+
+            Status status = processTacacsAuth(&tacCtx);
+            if(status.error_code() == StatusCode::OK) {
+                ClientContext ctx;
+                LOG_F(INFO, "Calling DisablePonIf");
+                status = openoltClientStub->DisablePonIf(&ctx, *request, response);
+            }
+            if(status.error_code() != StatusCode::OK) {
+                error_msg = status.error_message();
+            }
+            taccController->StopAccounting(&tacCtx, error_msg);
+            return status;
+        } else {
+            ClientContext ctx;
+            LOG_F(INFO, "Tacacs disabled.. Calling DisablePonIf");
+            return openoltClientStub->DisablePonIf(&ctx, *request, response);
+        }
+    }
+
+    Status CollectStatistics(
+            ServerContext* context,
+            const openolt::Empty* request,
+            openolt::Empty* response) override {
+        LOG_F(INFO, "CollectStatistics invoked");
+
+        if (taccController->IsTacacsEnabled()) {
+            TacacsContext tacCtx = extractDataFromGrpc(context);
+            if (tacCtx.username.empty()) {
+                return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
+            }
+
+            tacCtx.method_name = "collectstatistics";
+            string error_msg = "no error";
+            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
+            taccController->StartAccounting(&tacCtx);
+
+            Status status = processTacacsAuth(&tacCtx);
+            if(status.error_code() == StatusCode::OK) {
+                ClientContext ctx;
+                LOG_F(INFO, "Calling CollectStatistics");
+                status = openoltClientStub->CollectStatistics(&ctx, *request, response);
+            }
+            if(status.error_code() != StatusCode::OK) {
+                error_msg = status.error_message();
+            }
+            taccController->StopAccounting(&tacCtx, error_msg);
+            return status;
+        } else {
+            ClientContext ctx;
+            LOG_F(INFO, "Tacacs disabled.. Calling CollectStatistics");
+            return openoltClientStub->CollectStatistics(&ctx, *request, response);
+        }
+    }
+
+    Status Reboot(
+            ServerContext* context,
+            const openolt::Empty* request,
+            openolt::Empty* response) override {
+        LOG_F(INFO, "Reboot invoked");
+
+        if (taccController->IsTacacsEnabled()) {
+            TacacsContext tacCtx = extractDataFromGrpc(context);
+            if (tacCtx.username.empty()) {
+                return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
+            }
+
+            tacCtx.method_name = "reboot";
+            string error_msg = "no error";
+            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
+            taccController->StartAccounting(&tacCtx);
+
+            Status status = processTacacsAuth(&tacCtx);
+            if(status.error_code() == StatusCode::OK) {
+                ClientContext ctx;
+                LOG_F(INFO, "Calling Reboot");
+                status = openoltClientStub->Reboot(&ctx, *request, response);
+            }
+            if(status.error_code() != StatusCode::OK) {
+                error_msg = status.error_message();
+            }
+            taccController->StopAccounting(&tacCtx, error_msg);
+            return status;
+        } else {
+            ClientContext ctx;
+            LOG_F(INFO, "Tacacs disabled.. Calling Reboot");
+            return openoltClientStub->Reboot(&ctx, *request, response);
+        }
+    }
+
+    Status GetDeviceInfo(
+            ServerContext* context,
+            const openolt::Empty* request,
+            openolt::DeviceInfo* response) override {
+        LOG_F(INFO, "GetDeviceInfo invoked");
+
+        if (taccController->IsTacacsEnabled()) {
+            TacacsContext tacCtx = extractDataFromGrpc(context);
+            if (tacCtx.username.empty()) {
+                return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
+            }
+
+            tacCtx.method_name = "getdeviceinfo";
+            string error_msg = "no error";
+            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
+            taccController->StartAccounting(&tacCtx);
+
+            Status status = processTacacsAuth(&tacCtx);
+            if(status.error_code() == StatusCode::OK) {
+                ClientContext ctx;
+                LOG_F(INFO, "Calling GetDeviceInfo");
+                status = openoltClientStub->GetDeviceInfo(&ctx, *request, response);
+            }
+            if(status.error_code() != StatusCode::OK) {
+                error_msg = status.error_message();
+            }
+            taccController->StopAccounting(&tacCtx, error_msg);
+            return status;
+        } else {
+            ClientContext ctx;
+            LOG_F(INFO, "Tacacs disabled.. Calling GetDeviceInfo");
+            return openoltClientStub->GetDeviceInfo(&ctx, *request, response);
         }
     }
 
@@ -276,7 +732,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
             }
 
-            tacCtx.method_name = "CreateTrafficQueues";
+            tacCtx.method_name = "createtrafficqueues";
             string error_msg = "no error";
             LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
@@ -296,6 +752,216 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             ClientContext ctx;
             LOG_F(INFO, "Tacacs disabled.. Calling CreateTrafficQueues");
             return openoltClientStub->CreateTrafficQueues(&ctx, *request, response);
+        }
+    }
+
+    Status RemoveTrafficQueues(
+            ServerContext* context,
+            const tech_profile::TrafficQueues* request,
+            openolt::Empty* response) override {
+        LOG_F(INFO, "RemoveTrafficQueues invoked");
+
+        if (taccController->IsTacacsEnabled()) {
+            TacacsContext tacCtx = extractDataFromGrpc(context);
+            if (tacCtx.username.empty()) {
+                return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
+            }
+
+            tacCtx.method_name = "removetrafficqueues";
+            string error_msg = "no error";
+            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
+            taccController->StartAccounting(&tacCtx);
+
+            Status status = processTacacsAuth(&tacCtx);
+            if(status.error_code() == StatusCode::OK) {
+                ClientContext ctx;
+                LOG_F(INFO, "Calling RemoveTrafficQueues");
+                status = openoltClientStub->RemoveTrafficQueues(&ctx, *request, response);
+            }
+            if(status.error_code() != StatusCode::OK) {
+                error_msg = status.error_message();
+            }
+            taccController->StopAccounting(&tacCtx, error_msg);
+            return status;
+        } else {
+            ClientContext ctx;
+            LOG_F(INFO, "Tacacs disabled.. Calling RemoveTrafficQueues");
+            return openoltClientStub->RemoveTrafficQueues(&ctx, *request, response);
+        }
+    }
+
+    Status PerformGroupOperation(
+            ServerContext* context,
+            const openolt::Group* request,
+            openolt::Empty* response) override {
+        LOG_F(INFO, "PerformGroupOperation invoked");
+
+        if (taccController->IsTacacsEnabled()) {
+            TacacsContext tacCtx = extractDataFromGrpc(context);
+            if (tacCtx.username.empty()) {
+                return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
+            }
+
+            tacCtx.method_name = "performgroupoperation";
+            string error_msg = "no error";
+            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
+            taccController->StartAccounting(&tacCtx);
+
+            Status status = processTacacsAuth(&tacCtx);
+            if(status.error_code() == StatusCode::OK) {
+                ClientContext ctx;
+                LOG_F(INFO, "Calling PerformGroupOperation");
+                status = openoltClientStub->PerformGroupOperation(&ctx, *request, response);
+            }
+            if(status.error_code() != StatusCode::OK) {
+                error_msg = status.error_message();
+            }
+            taccController->StopAccounting(&tacCtx, error_msg);
+            return status;
+        } else {
+            ClientContext ctx;
+            LOG_F(INFO, "Tacacs disabled.. Calling PerformGroupOperation");
+            return openoltClientStub->PerformGroupOperation(&ctx, *request, response);
+        }
+    }
+
+    Status DeleteGroup(
+            ServerContext* context,
+            const openolt::Group* request,
+            openolt::Empty* response) override {
+        LOG_F(INFO, "DeleteGroup invoked");
+
+        if (taccController->IsTacacsEnabled()) {
+            TacacsContext tacCtx = extractDataFromGrpc(context);
+            if (tacCtx.username.empty()) {
+                return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
+            }
+
+            tacCtx.method_name = "deletegroup";
+            string error_msg = "no error";
+            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
+            taccController->StartAccounting(&tacCtx);
+
+            Status status = processTacacsAuth(&tacCtx);
+            if(status.error_code() == StatusCode::OK) {
+                ClientContext ctx;
+                LOG_F(INFO, "Calling DeleteGroup");
+                status = openoltClientStub->DeleteGroup(&ctx, *request, response);
+            }
+            if(status.error_code() != StatusCode::OK) {
+                error_msg = status.error_message();
+            }
+            taccController->StopAccounting(&tacCtx, error_msg);
+            return status;
+        } else {
+            ClientContext ctx;
+            LOG_F(INFO, "Tacacs disabled.. Calling DeleteGroup");
+            return openoltClientStub->DeleteGroup(&ctx, *request, response);
+        }
+    }
+/*
+    Status OnuItuPonAlarmSet(
+            ServerContext* context,
+	    const config::OnuItuPonAlarm* request,
+            openolt::Empty* response) override {
+        LOG_F(INFO, "OnuItuPonAlarmSet invoked");
+
+        if (taccController->IsTacacsEnabled()) {
+            TacacsContext tacCtx = extractDataFromGrpc(context);
+            if (tacCtx.username.empty()) {
+                return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
+            }
+
+            tacCtx.method_name = "onuituponalarmset";
+            string error_msg = "no error";
+            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
+            taccController->StartAccounting(&tacCtx);
+
+            Status status = processTacacsAuth(&tacCtx);
+            if(status.error_code() == StatusCode::OK) {
+                ClientContext ctx;
+                LOG_F(INFO, "Calling OnuItuPonAlarmSet");
+                status = openoltClientStub->OnuItuPonAlarmSet(&ctx, *request, response);
+            }
+            if(status.error_code() != StatusCode::OK) {
+                error_msg = status.error_message();
+            }
+            taccController->StopAccounting(&tacCtx, error_msg);
+            return status;
+        } else {
+            ClientContext ctx;
+            LOG_F(INFO, "Tacacs disabled.. Calling OnuItuPonAlarmSet");
+            return openoltClientStub->OnuItuPonAlarmSet(&ctx, *request, response);
+        }
+    }
+*/
+    Status GetLogicalOnuDistanceZero(
+            ServerContext* context,
+            const openolt::Onu* request,
+            openolt::OnuLogicalDistance* response) override {
+        LOG_F(INFO, "GetLogicalOnuDistanceZero invoked");
+
+        if (taccController->IsTacacsEnabled()) {
+            TacacsContext tacCtx = extractDataFromGrpc(context);
+            if (tacCtx.username.empty()) {
+                return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
+            }
+
+            tacCtx.method_name = "getlogicalonudistancezero";
+            string error_msg = "no error";
+            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
+            taccController->StartAccounting(&tacCtx);
+
+            Status status = processTacacsAuth(&tacCtx);
+            if(status.error_code() == StatusCode::OK) {
+                ClientContext ctx;
+                LOG_F(INFO, "Calling GetLogicalOnuDistanceZero");
+                status = openoltClientStub->GetLogicalOnuDistanceZero(&ctx, *request, response);
+            }
+            if(status.error_code() != StatusCode::OK) {
+                error_msg = status.error_message();
+            }
+            taccController->StopAccounting(&tacCtx, error_msg);
+            return status;
+        } else {
+            ClientContext ctx;
+            LOG_F(INFO, "Tacacs disabled.. Calling GetLogicalOnuDistanceZero");
+            return openoltClientStub->GetLogicalOnuDistanceZero(&ctx, *request, response);
+        }
+    }
+
+    Status GetLogicalOnuDistance(
+            ServerContext* context,
+            const openolt::Onu* request,
+            openolt::OnuLogicalDistance* response) override {
+        LOG_F(INFO, "GetLogicalOnuDistance invoked");
+
+        if (taccController->IsTacacsEnabled()) {
+            TacacsContext tacCtx = extractDataFromGrpc(context);
+            if (tacCtx.username.empty()) {
+                return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
+            }
+
+            tacCtx.method_name = "getlogicalonudistance";
+            string error_msg = "no error";
+            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
+            taccController->StartAccounting(&tacCtx);
+
+            Status status = processTacacsAuth(&tacCtx);
+            if(status.error_code() == StatusCode::OK) {
+                ClientContext ctx;
+                LOG_F(INFO, "Calling GetLogicalOnuDistance");
+                status = openoltClientStub->GetLogicalOnuDistance(&ctx, *request, response);
+            }
+            if(status.error_code() != StatusCode::OK) {
+                error_msg = status.error_message();
+            }
+            taccController->StopAccounting(&tacCtx, error_msg);
+            return status;
+        } else {
+            ClientContext ctx;
+            LOG_F(INFO, "Tacacs disabled.. Calling GetLogicalOnuDistance");
+            return openoltClientStub->GetLogicalOnuDistance(&ctx, *request, response);
         }
     }
 
