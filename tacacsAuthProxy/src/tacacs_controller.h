@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <syslog.h>
 #include <cstring>
+#include <ctime>
 #include "grpcpp/grpcpp.h"
 
 extern "C" {

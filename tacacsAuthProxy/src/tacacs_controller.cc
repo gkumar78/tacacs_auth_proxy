@@ -192,8 +192,8 @@ int TaccController::StartAccounting(const char* user, string methodName) {
        	strftime(buf, sizeof(buf), "%s", &tm);
        	tac_add_attrib(&attr, "start_time", buf);
 
-       	// this is not crypto but merely an identifier
-       	long rnd_id = random();
+	srand(time(NULL));
+       	long rnd_id = rand();
        	memcpy(&task_id, &rnd_id, sizeof(task_id));
 
        	sprintf(buf, "%hu", task_id);
