@@ -51,8 +51,8 @@ std::string base64_decode(std::string const& encoded_string);
 class ProxyServiceImpl final : public openolt::Openolt::Service  {
    
     TaccController *taccController;
-    const char* openolt_agent_address;
     unique_ptr<openolt::Openolt::Stub> openoltClientStub;
+
     struct grpcData {
         std::string username;
         std::string password;
@@ -133,10 +133,9 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
 
     ProxyServiceImpl(TaccController* tacctrl, const char* addr) {
             taccController = tacctrl;
-            openolt_agent_address = addr;
 
-            LOG_F(INFO, "Creating GRPC Channel to Openolt Agent on %s", openolt_agent_address);
-            openoltClientStub = openolt::Openolt::NewStub(grpc::CreateChannel(openolt_agent_address, grpc::InsecureChannelCredentials()));
+            LOG_F(INFO, "Creating GRPC Channel to Openolt Agent on %s", addr);
+            openoltClientStub = openolt::Openolt::NewStub(grpc::CreateChannel(addr, grpc::InsecureChannelCredentials()));
     }
     
 };
