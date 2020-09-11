@@ -35,7 +35,6 @@ class TaccController {
     bool fallback_pass;
 
     char* remote_addr;
-    char* tty;
 
   public:
     TaccController(const char* server_address, const char* secure_key, bool fallback_pass);

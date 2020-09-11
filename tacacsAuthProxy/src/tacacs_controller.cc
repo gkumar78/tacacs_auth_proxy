@@ -14,12 +14,21 @@
 #include "tacacs_controller.h"
 #include "logger.h"
 
+char TAC_FIELD_TTY[] = "grpc_api";
+char TAC_ATTR_SERVICE[] = "service";
+char TAC_ATTR_CMD[] = "cmd";
+char TAC_ATTR_START_TIME[] = "start_time";
+char TAC_ATTR_STOP_TIME[] = "stop_time";
+char TAC_ATTR_ELAPSED_TIME[] = "elapsed_time";
+char TAC_ATTR_TASK_ID[] = "task_id";
+char TAC_ATTR_ERR_MSG[] = "err_msg";
+char TAC_ATTR_VALUE_SHELL[] = "shell";
+
 TaccController::TaccController(const char* tacacs_server_address, const char* tacacs_secure_key, bool tacacs_fallback_pass){
         server_address = tacacs_server_address;
 	secure_key = tacacs_secure_key;
 	fallback_pass = tacacs_fallback_pass;
 	remote_addr =  "1.1.1.1";
-	tty =  "ttyS0";
 }
 
 bool TaccController::IsTacacsEnabled() {
@@ -60,7 +69,7 @@ Status TaccController::Authenticate(const char* user, const char* pass) {
     	}
 
         LOG_F(INFO, "Authentication: Send the authentication request to the server");
-    	if (tac_authen_send(tac_fd, user, pass, tty, remote_addr, TAC_PLUS_AUTHEN_LOGIN) < 0) {
+    	if (tac_authen_send(tac_fd, user, pass, TAC_FIELD_TTY, remote_addr, TAC_PLUS_AUTHEN_LOGIN) < 0) {
             LOG_F(INFO, "Error sending query to TACACS+ server\n");
             if (fallback_pass){
                 return Status(OK, "Returning OK");
@@ -114,10 +123,10 @@ Status TaccController::Authorize(const char* user, string methodName) {
 
         struct tac_attrib *attr = NULL;
 
-        tac_add_attrib(&attr, "service", "shell");
+        tac_add_attrib(&attr, TAC_ATTR_SERVICE, TAC_ATTR_VALUE_SHELL);
 	char c[methodName.size() + 1];
         strcpy(c, methodName.c_str());
-        tac_add_attrib(&attr, "cmd", c);
+        tac_add_attrib(&attr, TAC_ATTR_CMD, c);
 
         struct addrinfo *tac_server = NULL;
         struct addrinfo hints;
@@ -143,7 +152,7 @@ Status TaccController::Authorize(const char* user, string methodName) {
 
 	struct areply arep;
         LOG_F(INFO, "Authorize: Send the authentication request to the server");
-        if (tac_author_send(tac_fd, user, tty, remote_addr, attr) < 0) {
+        if (tac_author_send(tac_fd, user, TAC_FIELD_TTY, remote_addr, attr) < 0) {
             LOG_F(INFO, "Error sending authorization query to TACACS+ server\n");
             if (fallback_pass){
                 return Status(OK, "Returning OK");
@@ -190,18 +199,18 @@ int TaccController::StartAccounting(const char* user, string methodName) {
 
        	gmtime_r(&t, &tm);
        	strftime(buf, sizeof(buf), "%s", &tm);
-       	tac_add_attrib(&attr, "start_time", buf);
+       	tac_add_attrib(&attr, TAC_ATTR_START_TIME, buf);
 
 	srand(time(NULL));
        	long rnd_id = rand();
        	memcpy(&task_id, &rnd_id, sizeof(task_id));
 
        	sprintf(buf, "%hu", task_id);
-       	tac_add_attrib(&attr, "task_id", buf);
-       	tac_add_attrib(&attr, "service", "shell");
+       	tac_add_attrib(&attr, TAC_ATTR_TASK_ID, buf);
+       	tac_add_attrib(&attr, TAC_ATTR_SERVICE, TAC_ATTR_VALUE_SHELL);
 	char c[methodName.size() + 1];
         strcpy(c, methodName.c_str());
-       	tac_add_attrib(&attr, "cmd", c);
+       	tac_add_attrib(&attr, TAC_ATTR_CMD, c);
 
         struct addrinfo *tac_server = NULL;
         struct addrinfo hints;
@@ -222,7 +231,7 @@ int TaccController::StartAccounting(const char* user, string methodName) {
 	}
        	
         LOG_F(INFO, "StartAccounting: Send the start accounting request to the server");
-	tac_acct_send(tac_fd, TAC_PLUS_ACCT_FLAG_START, user, tty, remote_addr, attr);
+	tac_acct_send(tac_fd, TAC_PLUS_ACCT_FLAG_START, user, TAC_FIELD_TTY, remote_addr, attr);
 
 	struct areply arep;
         LOG_F(INFO, "StartAccounting: Read the reply from the server");
@@ -252,14 +261,14 @@ void TaccController::StopAccounting(const char* user, int task_id, string method
 
         gmtime_r(&t, &tm);
         strftime(buf, sizeof(buf), "%s", &tm);
-        tac_add_attrib(&attr, "stop_time", buf);
+        tac_add_attrib(&attr, TAC_ATTR_STOP_TIME, buf);
         sprintf(buf, "%hu", task_id);
-        tac_add_attrib(&attr, "task_id", buf);
+        tac_add_attrib(&attr, TAC_ATTR_TASK_ID, buf);
 
 	if(err_msg != "no error") {
             char c[err_msg.size() + 1];
             strcpy(c, err_msg.c_str());
-            tac_add_attrib(&attr, "err_msg", c);
+            tac_add_attrib(&attr, TAC_ATTR_ERR_MSG, c);
             LOG_F(INFO, "StopAccounting: Sending the error msg to the TACACS server");
 	}
 
@@ -282,7 +291,7 @@ void TaccController::StopAccounting(const char* user, int task_id, string method
         }
 
         LOG_F(INFO, "StopAccounting: Send the stop accounting request to the server");
-        tac_acct_send(tac_fd, TAC_PLUS_ACCT_FLAG_STOP, user, tty, remote_addr, attr);
+        tac_acct_send(tac_fd, TAC_PLUS_ACCT_FLAG_STOP, user, TAC_FIELD_TTY, remote_addr, attr);
 	struct areply arep;
 
         LOG_F(INFO, "StopAccounting: Read the reply from the server");
