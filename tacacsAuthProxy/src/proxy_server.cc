@@ -53,55 +53,54 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
     TaccController *taccController;
     unique_ptr<openolt::Openolt::Stub> openoltClientStub;
 
-    struct grpcData {
-        std::string username;
-        std::string password;
-    };
-
   public:
-    grpcData* extractDataFromGrpc(ServerContext* context) {
+    TacacsContext extractDataFromGrpc(ServerContext* context) {
         LOG_F(INFO, "Extracting the gRPC credentials");
         const std::multimap<grpc::string_ref, grpc::string_ref> metadata = context->client_metadata();
         std::multimap<grpc::string_ref, grpc::string_ref>::const_iterator data_iter = metadata.find("authorization");
 
+	TacacsContext tacCtx;
+
         if(data_iter != metadata.end()) {
-	    grpcData *structPtr;
-	    structPtr = new grpcData;
             string str_withBasic((data_iter->second).data(),(data_iter->second).length());
             std::string str_withoutBasic = str_withBasic.substr(6);
             std::string decoded_str = base64_decode(str_withoutBasic);
             int pos = decoded_str.find(":");
-            structPtr->username = decoded_str.substr(0,pos);
-            structPtr->password = decoded_str.substr(pos+1);
-            LOG_F(INFO, "Received gRPC credentials. username=%s, password=%s", structPtr->username.c_str(), structPtr->password.c_str());
-	    return structPtr;
+            tacCtx.username = decoded_str.substr(0,pos);
+            tacCtx.password = decoded_str.substr(pos+1);
+            tacCtx.remote_addr = context->peer();
+            LOG_F(INFO, "Received gRPC credentials username=%s, password=%s from Remote %s", tacCtx.username.c_str(), tacCtx.password.c_str(), tacCtx.remote_addr.c_str());
         } else {
-	    return NULL;
+	    tacCtx.username = "";
         }
+
+        return tacCtx;
     }
 
     Status processTacacsAuth(ServerContext* context, const openolt::Empty* request, openolt::Empty* response, string methodName) {
-        grpcData *grpcDataPtr = extractDataFromGrpc(context);
-	if (!grpcDataPtr) { 
+        TacacsContext tacCtx = extractDataFromGrpc(context);
+	if (tacCtx.username.empty()) { 
 	    return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
 	}
-        LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", grpcDataPtr->username.c_str(), grpcDataPtr->password.c_str());
-        int task_id = taccController->StartAccounting(grpcDataPtr->username.c_str(), methodName);
+
+	tacCtx.method_name = methodName;
+        LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
+        taccController->StartAccounting(&tacCtx);
 
         LOG_F(INFO, "Calling Authenticate");
-        Status status = taccController->Authenticate(grpcDataPtr->username.c_str(), grpcDataPtr->password.c_str());
+        Status status = taccController->Authenticate(&tacCtx);
         string error_msg;
         if(status.error_code() != StatusCode::OK) {
             error_msg = status.error_message();
-            taccController->StopAccounting(grpcDataPtr->username.c_str(), task_id, methodName, error_msg);
+            taccController->StopAccounting(&tacCtx, error_msg);
             return status;
         }
 
         LOG_F(INFO, "Calling Authorize");
-        status = taccController->Authorize(grpcDataPtr->username.c_str(), methodName);
+        status = taccController->Authorize(&tacCtx);
         if(status.error_code() != StatusCode::OK) {
             error_msg = status.error_message();
-            taccController->StopAccounting(grpcDataPtr->username.c_str(), task_id, methodName, error_msg);
+            taccController->StopAccounting(&tacCtx, error_msg);
             return status;
         }
 
@@ -110,10 +109,10 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
         status  = openoltClientStub->DisableOlt(&ctx, *request, response);
         if(status.error_code() != StatusCode::OK) {
             error_msg = status.error_message();
-            taccController->StopAccounting(grpcDataPtr->username.c_str(), task_id, methodName, error_msg);
+            taccController->StopAccounting(&tacCtx, error_msg);
             return status;
         }
-        taccController->StopAccounting(grpcDataPtr->username.c_str(), task_id, methodName, "no error");
+        taccController->StopAccounting(&tacCtx, "no error");
         return status;
     }
 
@@ -121,7 +120,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
         ServerContext* context,
         const openolt::Empty* request,
         openolt::Empty* response) override {
-            LOG_F(INFO, "DisableOlt");
+            LOG_F(INFO, "DisableOlt invoked");
 
             if (taccController->IsTacacsEnabled()) {
 		return processTacacsAuth(context, request, response, "disableolt");

@@ -37,7 +37,7 @@ const (
         defaultHost     = "127.0.0.1"
         defaultPort     = "19191"
         defaultUsername = "user1"
-        defaultPassword = "oltha"
+        defaultPassword = "voltha"
 )
 
 func init() {

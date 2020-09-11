@@ -27,6 +27,33 @@ extern "C" {
 using namespace std;
 using namespace grpc;
 
+class TacacsContext {
+    public:
+        std::string username;
+        std::string password;
+        std::string remote_addr;
+        std::string method_name;
+        int task_id;
+        time_t start_time;
+
+        char* getUsername() {
+            return const_cast<char*>(username.c_str());
+        }
+
+        char* getPassword() {
+            return const_cast<char*>(password.c_str());
+        }
+
+        char* getRemoteAddr() {
+            return const_cast<char*>(remote_addr.c_str());
+        }
+
+        char* getMethodName() {
+            return const_cast<char*>(method_name.c_str());
+        }
+
+    };
+
 class TaccController {
     int tac_fd;
 
@@ -34,14 +61,12 @@ class TaccController {
     const char* secure_key;
     bool fallback_pass;
 
-    char* remote_addr;
-
   public:
     TaccController(const char* server_address, const char* secure_key, bool fallback_pass);
 
     bool IsTacacsEnabled();
-    Status Authenticate(const char* user, const char* pass);
-    Status Authorize(const char* user, string methodName);
-    int StartAccounting(const char* user, string methodName);
-    void StopAccounting(const char* user, int task_id, string methodName, string err_msg);
+    Status Authenticate(TacacsContext* tacCtx);
+    Status Authorize(TacacsContext* tacCtx);
+    void StartAccounting(TacacsContext* tacCtx);
+    void StopAccounting(TacacsContext* tacCtx, string err_msg);
 };
