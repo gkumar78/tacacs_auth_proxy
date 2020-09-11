@@ -52,7 +52,7 @@ class TacacsContext {
             return const_cast<char*>(method_name.c_str());
         }
 
-    };
+};
 
 class TaccController {
     int tac_fd;
@@ -61,7 +61,7 @@ class TaccController {
     const char* secure_key;
     bool fallback_pass;
 
-  public:
+    public:
     TaccController(const char* server_address, const char* secure_key, bool fallback_pass);
 
     bool IsTacacsEnabled();
