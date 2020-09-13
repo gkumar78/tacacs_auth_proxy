@@ -13,4 +13,4 @@ OPENOLT_AGENT_ADDRESS=192.168.10.243:50060
 [ -z "$INTERFACE_ADDRESS" ] || APPARGS="$APPARGS --interface_address $INTERFACE_ADDRESS"
 [ -z "$OPENOLT_AGENT_ADDRESS" ] || APPARGS="$APPARGS --openolt_agent_address $OPENOLT_AGENT_ADDRESS"
 
-$SCRIPTDIR/build/tacacsproxy $APPARGS $@
+$SCRIPTDIR/build/tacacsproxy $APPARGS $@ -v 9

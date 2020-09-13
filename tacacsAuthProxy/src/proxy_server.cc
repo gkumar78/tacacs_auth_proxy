@@ -57,7 +57,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
 
     public:
     TacacsContext extractDataFromGrpc(ServerContext* context) {
-        LOG_F(INFO, "Extracting the gRPC credentials");
+        LOG_F(MAX, "Extracting the gRPC credentials");
         const std::multimap<grpc::string_ref, grpc::string_ref> metadata = context->client_metadata();
         std::multimap<grpc::string_ref, grpc::string_ref>::const_iterator data_iter = metadata.find("authorization");
 
@@ -73,7 +73,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             tacCtx.remote_addr = context->peer();
             LOG_F(INFO, "Received gRPC credentials username=%s, password=%s from Remote %s", tacCtx.username.c_str(), tacCtx.password.c_str(), tacCtx.remote_addr.c_str());
         } else {
-            LOG_F(INFO, "Unable to find or extract credentials from incoming gRPC request");
+            LOG_F(WARNING, "Unable to find or extract credentials from incoming gRPC request");
             tacCtx.username = "";
         }
 
@@ -81,10 +81,10 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
     }
 
     Status processTacacsAuth(TacacsContext* tacCtx){
-        LOG_F(INFO, "Calling Authenticate");
+        LOG_F(MAX, "Calling Authenticate");
         Status status = taccController->Authenticate(tacCtx);
         if(status.error_code() == StatusCode::OK) {
-            LOG_F(INFO, "Calling Authorize");
+            LOG_F(MAX, "Calling Authorize");
             status = taccController->Authorize(tacCtx);
         }
         return status;
@@ -103,8 +103,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "disableolt";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -113,6 +111,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling DisableOlt");
                 status = openoltClientStub->DisableOlt(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -138,8 +137,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "reenableolt";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -148,6 +145,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling ReenableOlt");
                 status = openoltClientStub->ReenableOlt(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -173,8 +171,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "activateonu";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -183,6 +179,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling ActivateOnu");
                 status = openoltClientStub->ActivateOnu(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -208,8 +205,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "deactivateonu";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -218,6 +213,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling DeactivateOnu");
                 status = openoltClientStub->DeactivateOnu(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -243,8 +239,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "deleteonu";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -253,6 +247,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling DeleteOnu");
                 status = openoltClientStub->DeleteOnu(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -278,8 +273,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "omcimsgout";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -288,6 +281,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling OmciMsgOut");
                 status = openoltClientStub->OmciMsgOut(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -313,8 +307,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "onupacketout";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -323,6 +315,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling OnuPacketOut");
                 status = openoltClientStub->OnuPacketOut(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -348,8 +341,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "uplinkpacketout";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -358,6 +349,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling UplinkPacketOut");
                 status = openoltClientStub->UplinkPacketOut(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -383,8 +375,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "flowadd";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -393,6 +383,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling FlowAdd");
                 status = openoltClientStub->FlowAdd(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -418,8 +409,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "flowremove";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -428,6 +417,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling FlowRemove");
                 status = openoltClientStub->FlowRemove(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -453,8 +443,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "heartbeatcheck";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -463,6 +451,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling HeartbeatCheck");
                 status = openoltClientStub->HeartbeatCheck(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -488,8 +477,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "enableponif";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -498,6 +485,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling EnablePonIf");
                 status = openoltClientStub->EnablePonIf(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -523,8 +511,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "disableponif";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -533,6 +519,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling DisablePonIf");
                 status = openoltClientStub->DisablePonIf(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -558,8 +545,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "collectstatistics";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -568,6 +553,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling CollectStatistics");
                 status = openoltClientStub->CollectStatistics(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -593,8 +579,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "reboot";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -603,6 +587,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling Reboot");
                 status = openoltClientStub->Reboot(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -619,7 +604,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             ServerContext* context,
             const openolt::Empty* request,
             openolt::DeviceInfo* response) override {
-        LOG_F(INFO, "GetDeviceInfo invoked");
+        LOG_F(MAX, "GetDeviceInfo invoked");
 
         if (taccController->IsTacacsEnabled()) {
             TacacsContext tacCtx = extractDataFromGrpc(context);
@@ -628,8 +613,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "getdeviceinfo";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -638,6 +621,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling GetDeviceInfo");
                 status = openoltClientStub->GetDeviceInfo(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -663,8 +647,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "createtrafficschedulers";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -673,6 +655,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling CreateTrafficSchedulers");
                 status = openoltClientStub->CreateTrafficSchedulers(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -698,8 +681,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "removetrafficschedulers";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -708,6 +689,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling RemoveTrafficSchedulers");
                 status = openoltClientStub->RemoveTrafficSchedulers(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -733,8 +715,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "createtrafficqueues";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -743,6 +723,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling CreateTrafficQueues");
                 status = openoltClientStub->CreateTrafficQueues(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -768,8 +749,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "removetrafficqueues";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -778,6 +757,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling RemoveTrafficQueues");
                 status = openoltClientStub->RemoveTrafficQueues(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -803,8 +783,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "performgroupoperation";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -813,6 +791,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling PerformGroupOperation");
                 status = openoltClientStub->PerformGroupOperation(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -838,8 +817,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "deletegroup";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -848,6 +825,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling DeleteGroup");
                 status = openoltClientStub->DeleteGroup(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -859,10 +837,10 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             return openoltClientStub->DeleteGroup(&ctx, *request, response);
         }
     }
-/*
+
     Status OnuItuPonAlarmSet(
             ServerContext* context,
-	    const config::OnuItuPonAlarm* request,
+	    const openolt::OnuItuPonAlarm* request,
             openolt::Empty* response) override {
         LOG_F(INFO, "OnuItuPonAlarmSet invoked");
 
@@ -873,8 +851,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "onuituponalarmset";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -883,6 +859,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling OnuItuPonAlarmSet");
                 status = openoltClientStub->OnuItuPonAlarmSet(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -894,7 +871,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             return openoltClientStub->OnuItuPonAlarmSet(&ctx, *request, response);
         }
     }
-*/
+
     Status GetLogicalOnuDistanceZero(
             ServerContext* context,
             const openolt::Onu* request,
@@ -908,8 +885,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "getlogicalonudistancezero";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -918,6 +893,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling GetLogicalOnuDistanceZero");
                 status = openoltClientStub->GetLogicalOnuDistanceZero(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -943,8 +919,6 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
             }
 
             tacCtx.method_name = "getlogicalonudistance";
-            string error_msg = "no error";
-            LOG_F(INFO, "processTacacsAuth: username=%s, password=%s", tacCtx.username.c_str(), tacCtx.password.c_str());
             taccController->StartAccounting(&tacCtx);
 
             Status status = processTacacsAuth(&tacCtx);
@@ -953,6 +927,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
                 LOG_F(INFO, "Calling GetLogicalOnuDistance");
                 status = openoltClientStub->GetLogicalOnuDistance(&ctx, *request, response);
             }
+            string error_msg = "no error";
             if(status.error_code() != StatusCode::OK) {
                 error_msg = status.error_message();
             }
@@ -1040,17 +1015,17 @@ void RunServer(int argc, char** argv) {
     }
 
     if(!interface_address || interface_address == ""){
-        LOG_F(ERROR, "Server Interface Bind address is missing. TACACS Proxy startup failed");
+        LOG_F(FATAL, "Server Interface Bind address is missing. TACACS Proxy startup failed");
         return; 
     }
 
     if(!openolt_agent_address || openolt_agent_address == ""){
-        LOG_F(ERROR, "Openolt Agent address is missing. TACACS Proxy startup failed");
+        LOG_F(FATAL, "Openolt Agent address is missing. TACACS Proxy startup failed");
         return;
     }
 
     if(!tacacs_server_address || tacacs_server_address == ""){
-        LOG_F(INFO, "TACACS+ Server address is missing. TACACS+ AAA will be disabled");
+        LOG_F(WARNING, "TACACS+ Server address is missing. TACACS+ AAA will be disabled");
     }
 
     LOG_F(INFO, "TACACS+ Server configured as %s", tacacs_server_address);
@@ -1062,10 +1037,10 @@ void RunServer(int argc, char** argv) {
         tacacs_secure_key = "";
     }
 
-    LOG_F(INFO, "Creating TaccController");
+    LOG_F(MAX, "Creating TaccController");
     taccController = new TaccController(tacacs_server_address, tacacs_secure_key, tacacs_fallback_pass);
 
-    LOG_F(INFO, "Creating Proxy Server");
+    LOG_F(MAX, "Creating Proxy Server");
     ProxyServiceImpl service(taccController, openolt_agent_address);
 
     grpc::EnableDefaultHealthCheckService(true);
