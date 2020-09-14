@@ -429,6 +429,58 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
         }
     }
 
+    Status EnableIndication(
+            ServerContext* context,
+            const ::openolt::Empty* request,
+            ServerWriter<openolt::Indication>* writer) override {
+        LOG_F(INFO, "EnableIndication invoked");
+
+        if (taccController->IsTacacsEnabled()) {
+            TacacsContext tacCtx = extractDataFromGrpc(context);
+            if (tacCtx.username.empty()) {
+                return Status(grpc::INVALID_ARGUMENT,"Unable to find or extract credentials from incoming gRPC request");
+            }
+
+            tacCtx.method_name = "enableindication";
+            taccController->StartAccounting(&tacCtx);
+
+            Status status = processTacacsAuth(&tacCtx);
+            if(status.error_code() == StatusCode::OK) {
+                ClientContext ctx;
+                LOG_F(INFO, "Calling EnableIndication");
+                std::unique_ptr<ClientReader<openolt::Indication> > reader = openoltClientStub->EnableIndication(&ctx, *request);
+                openolt::Indication indication;
+                while( reader->Read(&indication) ) {
+                    LOG_F(INFO, "Sending out Indication type %d", indication.data_case());
+                    if( !writer->Write(indication) ) {
+                        LOG_F(WARNING, "Grpc Stream broken while sending out Indication");
+                        break;
+                    }
+                }
+                status = reader->Finish();
+            }
+            string error_msg = "no error";
+            if(status.error_code() != StatusCode::OK) {
+                error_msg = status.error_message();
+            }
+            taccController->StopAccounting(&tacCtx, error_msg);
+            return status;
+        } else {
+            ClientContext ctx;
+            LOG_F(INFO, "Tacacs disabled.. Calling EnableIndication");
+            std::unique_ptr<ClientReader<openolt::Indication> > reader = openoltClientStub->EnableIndication(&ctx, *request);
+            openolt::Indication indication;
+            while( reader->Read(&indication) ) {
+                LOG_F(INFO, "Sending out Indication type %d", indication.data_case());
+                if( !writer->Write(indication) ) {
+                    LOG_F(WARNING, "Grpc Stream broken while sending out Indication");
+                    break;
+                }
+            }
+            return reader->Finish();
+        }
+    }
+
     Status HeartbeatCheck(
             ServerContext* context,
             const openolt::Empty* request,
