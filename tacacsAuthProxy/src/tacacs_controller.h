@@ -61,11 +61,13 @@ class TaccController {
     const char* server_address;
     const char* secure_key;
     bool fallback_pass;
+    struct addrinfo* resolved_server_address = NULL;
 
     public:
     TaccController(const char* server_address, const char* secure_key, bool fallback_pass);
 
     bool IsTacacsEnabled();
+    struct addrinfo* ResolveServerAddress();
     Status Authenticate(TacacsContext* tacCtx);
     Status Authorize(TacacsContext* tacCtx);
     void StartAccounting(TacacsContext* tacCtx);
