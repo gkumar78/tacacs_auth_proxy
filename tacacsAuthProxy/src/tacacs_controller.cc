@@ -41,7 +41,7 @@ bool TaccController::IsTacacsEnabled() {
 
 Status TaccController::Authenticate(TacacsContext* tacCtx) {
     LOG_F(MAX, "Authentication");
-    if(!IsTacacsEnabled()) {
+    if(!IsTacacsEnabled() || tacCtx->tacacs_connect_failure) {
         return Status(OK, "Returning OK as TACACS server address is not available");
     }
 
@@ -50,7 +50,17 @@ Status TaccController::Authenticate(TacacsContext* tacCtx) {
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
-    int ret = getaddrinfo(server_address, "tacacs", &hints, &tac_server);
+    string s(server_address);
+    int pos = s.find(":");
+    string host, port;
+    if (pos > 0){
+        port = s.substr(pos + 1);
+        host = s.substr(0,pos);
+    } else {
+        host = s;
+	port = "49";
+    }
+    int ret = getaddrinfo(host.c_str(), port.c_str(), &hints, &tac_server);
     if (ret != 0) {
         LOG_F(WARNING, "Error: resolving name %s: %s", server_address, gai_strerror(ret));
         return Status(UNAVAILABLE, "Error: resolving name");
@@ -60,6 +70,7 @@ Status TaccController::Authenticate(TacacsContext* tacCtx) {
     tac_fd = tac_connect_single(tac_server, secure_key, NULL, 60);
     if (tac_fd < 0) {
         LOG_F(WARNING, "Error connecting to TACACS+ server");
+        tacCtx->tacacs_connect_failure = true;
         if (fallback_pass){
             return Status(OK, "Returning OK");
         } else {
@@ -116,7 +127,7 @@ Status TaccController::Authenticate(TacacsContext* tacCtx) {
 
 Status TaccController::Authorize(TacacsContext* tacCtx) {
     LOG_F(MAX, "Authorize");
-    if(!IsTacacsEnabled()) {
+    if(!IsTacacsEnabled() || tacCtx->tacacs_connect_failure) {
         return Status(OK, "Returning OK as TACACS server address is not available");
     }
 
@@ -132,7 +143,17 @@ Status TaccController::Authorize(TacacsContext* tacCtx) {
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
-    int ret = getaddrinfo(server_address, "tacacs", &hints, &tac_server);
+    string s(server_address);
+    int pos = s.find(":");
+    string host, port;
+    if (pos > 0){
+        port = s.substr(pos + 1);
+        host = s.substr(0,pos);
+    } else {
+        host = s;
+        port = "49";
+    }
+    int ret = getaddrinfo(host.c_str(), port.c_str(), &hints, &tac_server);
     if (ret != 0) {
         LOG_F(WARNING, "Error: resolving name %s: %s", server_address, gai_strerror(ret));
         return Status(UNAVAILABLE, "Error: resolving name");
@@ -142,6 +163,7 @@ Status TaccController::Authorize(TacacsContext* tacCtx) {
     tac_fd = tac_connect_single(tac_server, secure_key, NULL, 60);
     if (tac_fd < 0) {
         LOG_F(WARNING, "Error connecting to TACACS+ server");
+        tacCtx->tacacs_connect_failure = true;
         if (fallback_pass){
             return Status(OK, "Returning OK");
         } else {
@@ -219,7 +241,17 @@ void TaccController::StartAccounting(TacacsContext* tacCtx) {
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
-    int ret = getaddrinfo(server_address, "tacacs", &hints, &tac_server);
+    string s(server_address);
+    int pos = s.find(":");
+    string host, port;
+    if (pos > 0){
+        port = s.substr(pos + 1);
+        host = s.substr(0,pos);
+    } else {
+        host = s;
+        port = "49";
+    }
+    int ret = getaddrinfo(host.c_str(), port.c_str(), &hints, &tac_server);
     if (ret != 0) {
         LOG_F(WARNING, "Error: resolving name %s: %s", server_address, gai_strerror(ret));
         return;
@@ -228,6 +260,7 @@ void TaccController::StartAccounting(TacacsContext* tacCtx) {
     LOG_F(MAX, "StartAccounting: Connect to the server");
     tac_fd = tac_connect_single(tac_server, secure_key, NULL, 60);
     if (tac_fd < 0) {
+	tacCtx->tacacs_connect_failure = true;
         LOG_F(WARNING, "Error connecting to TACACS+ server");
         return;
     }
@@ -281,7 +314,17 @@ void TaccController::StopAccounting(TacacsContext* tacCtx, string err_msg) {
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
-    int ret = getaddrinfo(server_address, "tacacs", &hints, &tac_server);
+    string s(server_address);
+    int pos = s.find(":");
+    string host, port;
+    if (pos > 0){
+        port = s.substr(pos + 1);
+        host = s.substr(0,pos);
+    } else {
+        host = s;
+        port = "49";
+    }
+    int ret = getaddrinfo(host.c_str(), port.c_str(), &hints, &tac_server);
     if (ret != 0) {
         LOG_F(WARNING, "Error: resolving name %s: %s", server_address, gai_strerror(ret));
         return;
@@ -290,6 +333,7 @@ void TaccController::StopAccounting(TacacsContext* tacCtx, string err_msg) {
     LOG_F(MAX, "StopAccounting: Connect to the server");
     tac_fd = tac_connect_single(tac_server, secure_key, NULL, 60);
     if (tac_fd < 0) {
+        tacCtx->tacacs_connect_failure = true;
         LOG_F(WARNING, "Error connecting to TACACS+ server");
         return;
     }

@@ -35,6 +35,7 @@ class TacacsContext {
         std::string method_name;
         int task_id;
         time_t start_time;
+	bool tacacs_connect_failure = false;	
 
         char* getUsername() {
             return const_cast<char*>(username.c_str());

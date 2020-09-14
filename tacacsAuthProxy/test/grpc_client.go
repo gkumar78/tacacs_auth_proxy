@@ -34,7 +34,7 @@ var host, port string
 var username, password string
 
 const (
-        defaultHost     = "127.0.0.1"
+        defaultHost     = "192.168.10.243"
         defaultPort     = "19191"
         defaultUsername = "user1"
         defaultPassword = "voltha"

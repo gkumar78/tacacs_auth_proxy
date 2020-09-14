@@ -21,7 +21,6 @@
 
 #include <voltha_protos/openolt.grpc.pb.h>
 #include <voltha_protos/tech_profile.grpc.pb.h>
-//#include <voltha_protos/ext_config.grpc.pb.h>
 
 #include "tacacs_controller.h"
 #include "logger.h"
