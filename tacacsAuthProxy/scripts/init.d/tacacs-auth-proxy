@@ -25,6 +25,7 @@ GROUP="root"
 [ -z "$TACACS_FALLBACK_PASS" ] || APPARGS="$APPARGS --tacacs_fallback_pass $TACACS_FALLBACK_PASS"
 [ -z "$INTERFACE_ADDRESS" ] || APPARGS="$APPARGS --interface_address $INTERFACE_ADDRESS"
 [ -z "$OPENOLT_AGENT_ADDRESS" ] || APPARGS="$APPARGS --openolt_agent_address $OPENOLT_AGENT_ADDRESS"
+[ -z "$DEBUG_LOGS" -o "$DEBUG_LOGS" != "1" ] || APPARGS="$APPARGS -v 9"
 
 # Include functions
 set -e
