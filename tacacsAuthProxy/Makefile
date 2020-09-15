@@ -18,7 +18,7 @@ TOP_DIR=`pwd`
 # Build directory
 BUILD_DIR = build
 
-OPENOLT_PROTO_VER ?= v3.3.9
+OPENOLT_PROTO_VER ?= v3.4.5
 
 # Protobuf installation
 PROTOBUF_VER ?= 3.5.0

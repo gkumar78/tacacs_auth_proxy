@@ -21,6 +21,7 @@
 
 #include <voltha_protos/openolt.grpc.pb.h>
 #include <voltha_protos/tech_profile.grpc.pb.h>
+#include <voltha_protos/ext_config.grpc.pb.h>
 
 #include "tacacs_controller.h"
 #include "logger.h"
@@ -891,7 +892,7 @@ class ProxyServiceImpl final : public openolt::Openolt::Service  {
 
     Status OnuItuPonAlarmSet(
             ServerContext* context,
-	    const openolt::OnuItuPonAlarm* request,
+	    const config::OnuItuPonAlarm* request,
             openolt::Empty* response) override {
         LOG_F(INFO, "OnuItuPonAlarmSet invoked");
 
